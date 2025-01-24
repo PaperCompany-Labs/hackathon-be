@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from database import Base
-from sqlalchemy import VARCHAR, Boolean, Column, DateTime, ForeignKey, Integer, Text
+from sqlalchemy import ARRAY, SMALLINT, VARCHAR, Boolean, Column, DateTime, ForeignKey, Integer, Text
 
 
 """
@@ -17,8 +17,8 @@ class User(Base):
     id = Column(VARCHAR(10), nullable=True)
     password = Column(VARCHAR(100), nullable=True)
     name = Column(VARCHAR(10), nullable=True)
-    gender = Column(VARCHAR(1), nullable=False, default="0")
-    age = Column(Integer, nullable=False, default=0)
+    gender = Column(VARCHAR(1), nullable=False, default="X")
+    age = Column(SMALLINT, nullable=False, default=0)
     created_date = Column(DateTime, nullable=False, default=datetime.now)
 
 
@@ -28,14 +28,18 @@ class User(Base):
 #     no = Column(Integer, primary_key=True, autoincrement=True)
 #     user_no = Column(Integer, ForeignKey("user.no"))
 #     novel_no = Column(Integer, ForeignKey("novel.no"))
-#     genre_no = Column(Integer, ForeignKey("genre.no"))
+#     genre_type = Column(ARRAY(SMALLINT))
 #     degree = Column(Integer)
 #     created_date = Column(DateTime, nullable=False, default=datetime.now)
 
-# class Genre(Base):
-#     __tablename__ = "genre"
-#     no = Column(Integer, primary_key=True, autoincrement=True)
-#     name = Column(VARCHAR(50))
+
+class UserSave(Base):
+    __tablename__ = "user_save"
+
+    no = Column(Integer, primary_key=True, autoincrement=True)
+    user_no = Column(Integer, ForeignKey("user.no"))
+    novel_no = Column(Integer, ForeignKey("novel.no"))
+    novel_shorts_no = Column(Integer, ForeignKey("novel_shorts.no"))
 
 
 class UserActiveLog(Base):
@@ -45,41 +49,28 @@ class UserActiveLog(Base):
     user_no = Column(Integer, ForeignKey("user.no"))
     novel_no = Column(Integer, ForeignKey("novel.no"), nullable=True)
     comment_no = Column(Integer, ForeignKey("comment.no"), nullable=True)
-    active_no = Column(Integer, ForeignKey("active.no"))
+    active_type = Column(Integer)
     acted_date = Column(DateTime, nullable=True)
     created_date = Column(DateTime, nullable=False, default=datetime.now)
-
-
-class Active(Base):
-    __tablename__ = "active"
-
-    no = Column(Integer, primary_key=True, autoincrement=True)
-    name = Column(VARCHAR(50))
 
 
 class Novel(Base):
     __tablename__ = "novel"
 
     no = Column(Integer, primary_key=True, autoincrement=True)
-    source_no = Column(Integer, ForeignKey("source.no"))
+    source_platform_type = Column(SMALLINT)
     source_id = Column(Integer)  # 주입
     source_url = Column(Text)
     title = Column(VARCHAR(50))
     author = Column(VARCHAR(50))
     description = Column(Text)
+    genres = Column(ARRAY(SMALLINT))
     cover_image = Column(Text)
     chapters = Column(Integer)  # 연재수
     views = Column(Integer)  # 조회수
     recommends = Column(Integer)  # 추천수
     created_date = Column(DateTime, nullable=True)
     last_uploaded_date = Column(DateTime, nullable=True)
-
-
-class NovelSource(Base):
-    __tablename__ = "novel_source"
-
-    no = Column(Integer, primary_key=True, autoincrement=True)
-    name = Column(VARCHAR(50))
 
 
 # class NovelChapter(Base):
@@ -97,17 +88,20 @@ class NovelShorts(Base):
 
     no = Column(Integer, primary_key=True, autoincrement=True)
     novel_no = Column(Integer, ForeignKey("novel.no"))
+    form_type = Column(SMALLINT)
     content = Column(Text)
+    image = Column(Text)
     music = Column(Text)
-    like = Column(Integer, default=0)
-    save = Column(Integer, default=0)
+    likes = Column(Integer, default=0)
+    saves = Column(Integer, default=0)
+    comments = Column(Integer, default=0)
 
 
 class Comment(Base):
     __tablename__ = "comment"
 
     no = Column(Integer, primary_key=True, autoincrement=True)
-    novel_no = Column(Integer, ForeignKey("novel.no"))
+    novel_shorts_no = Column(Integer, ForeignKey("novel_shorts.no"))
     user_no = Column(Integer, ForeignKey("user.no"))
     parent_no = Column(Integer, ForeignKey("comment.no"))
     created_date = Column(DateTime, nullable=False, default=datetime.now)
