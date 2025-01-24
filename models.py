@@ -4,6 +4,12 @@ from database import Base
 from sqlalchemy import VARCHAR, Boolean, Column, DateTime, ForeignKey, Integer, Text
 
 
+"""
+no: 내부적으로 사용하는 식별자(인덱스)
+id: 외부에서 주입된 식별자
+"""
+
+
 class User(Base):
     __tablename__ = "user"
 
@@ -54,20 +60,36 @@ class Active(Base):
 class Novel(Base):
     __tablename__ = "novel"
 
-    no = Column(Integer, primary_key=True)  # 주입
+    no = Column(Integer, primary_key=True, autoincrement=True)
+    source_no = Column(Integer, ForeignKey("source.no"))
+    source_id = Column(Integer)  # 주입
+    source_url = Column(Text)
     title = Column(VARCHAR(50))
-    description = Column(Text)
     author = Column(VARCHAR(50))
+    description = Column(Text)
     cover_image = Column(Text)
+    chapters = Column(Integer)  # 연재수
+    views = Column(Integer)  # 조회수
+    recommends = Column(Integer)  # 추천수
+    created_date = Column(DateTime, nullable=True)
+    last_uploaded_date = Column(DateTime, nullable=True)
 
 
-class NovelChapter(Base):
-    __tablename__ = "novel_chapter"
+class NovelSource(Base):
+    __tablename__ = "novel_source"
 
     no = Column(Integer, primary_key=True, autoincrement=True)
-    novel_no = Column(Integer, ForeignKey("novel.no"))
-    subtitle = Column(VARCHAR(50))
-    content = Column(Text)
+    name = Column(VARCHAR(50))
+
+
+# class NovelChapter(Base):
+#     __tablename__ = "novel_chapter"
+
+#     no = Column(Integer, primary_key=True, autoincrement=True)
+#     novel_no = Column(Integer, ForeignKey("novel.no"))
+#     source_id = Column(Integer)  # 주입
+#     subtitle = Column(VARCHAR(50))
+#     content = Column(Text)
 
 
 class NovelShorts(Base):
@@ -75,9 +97,8 @@ class NovelShorts(Base):
 
     no = Column(Integer, primary_key=True, autoincrement=True)
     novel_no = Column(Integer, ForeignKey("novel.no"))
-    chapter_no = Column(Integer, ForeignKey("novel_chapter.no"))
     content = Column(Text)
-    music = Column(VARCHAR(100))
+    music = Column(Text)
     like = Column(Integer, default=0)
     save = Column(Integer, default=0)
 
