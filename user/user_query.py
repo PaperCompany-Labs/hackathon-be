@@ -20,7 +20,6 @@ def get_user(db: Session, id: str, provider: str = None):
 
 def create_user(new_user: NewUserForm, db: Session):
     user = User(
-        user_name=new_user.name,
         id=new_user.id,
         password=pwd_context.hash(new_user.password),
         name=new_user.name,
