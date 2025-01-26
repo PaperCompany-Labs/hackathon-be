@@ -1,16 +1,30 @@
+# 빌드 스테이지
+FROM python:3.10-slim as builder
+
+WORKDIR /app
+
+# 가상환경 생성
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# 빌드 종속성 설치
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# 실행 스테이지
 FROM python:3.10-slim
 
 WORKDIR /app
 
-# 시스템 패키지 설치
+# 가상환경 복사
+COPY --from=builder /opt/venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# 필요한 시스템 라이브러리만 설치
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-    build-essential \
+    libpq5 \
     && rm -rf /var/lib/apt/lists/*
-
-# 파이썬 패키지 설치
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
 
 # 애플리케이션 코드 복사
 COPY . .
