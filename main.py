@@ -27,4 +27,4 @@ app.add_middleware(
 
 @app.get("/")
 def health_check():
-    return {"state": "ok"}
+    return {"version": "1.0.0"}
