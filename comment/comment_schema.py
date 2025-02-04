@@ -6,7 +6,6 @@ from pydantic import BaseModel
 
 class CommentCreate(BaseModel):
     novel_shorts_no: int
-    user_no: int
     parent_no: Optional[int] = None
     content: str
 
