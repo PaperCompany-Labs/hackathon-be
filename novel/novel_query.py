@@ -5,6 +5,12 @@ from sqlalchemy.orm import Session
 
 
 def get_post(post_no: int, db: Session):
+    if not isinstance(post_no, int) or post_no <= 0:
+        return {"error": "Invalid post_no", "msg": "올바르지 않은 게시글 번호입니다."}
+
+    if not db or not db.is_active:
+        return {"error": "Invalid database session", "msg": "데이터베이스 연결이 유효하지 않습니다."}
+
     try:
         post = (
             db.query(

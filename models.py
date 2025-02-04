@@ -1,4 +1,5 @@
 from datetime import datetime
+import enum
 
 from database import Base
 from sqlalchemy import ARRAY, SMALLINT, VARCHAR, Boolean, Column, DateTime, ForeignKey, Integer, Text
@@ -54,12 +55,19 @@ class UserActiveLog(Base):
     created_date = Column(DateTime, nullable=False, default=datetime.now)
 
 
+class SourceType(enum.Enum):
+    OTHER = 0
+    MUNPIA = 1
+    RIDI = 2
+
+
 class Novel(Base):
     __tablename__ = "novel"
 
     no = Column(Integer, primary_key=True, autoincrement=True)
     source_platform_type = Column(SMALLINT)
-    source_id = Column(Integer)  # 주입
+    source_id = Column(Integer)
+    source_type = Column(SMALLINT)
     source_url = Column(Text)
     title = Column(VARCHAR(50))
     author = Column(VARCHAR(50))

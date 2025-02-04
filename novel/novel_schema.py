@@ -11,7 +11,7 @@ class PostResponse(BaseModel):
     title: str
     author: str
     description: str
-    genres: Optional[List[str]] = None
+    genres: Optional[List[int]] = None
     cover_image: Optional[str] = None
     chapters: int  # 연재수
     views: int  # 조회수
