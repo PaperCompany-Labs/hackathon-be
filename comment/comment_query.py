@@ -14,7 +14,10 @@ def get_comments(db: Session, novel_shorts_no: int) -> CommentListResponse:
     try:
         comments = (
             db.query(Comment)
-            .filter(Comment.novel_shorts_no == novel_shorts_no, Comment.is_del is False)
+            .filter(
+                Comment.novel_shorts_no == novel_shorts_no,
+                Comment.is_del.is_(False),  # 수정
+            )
             .order_by(Comment.created_date.asc())
             .all()
         )
@@ -53,7 +56,11 @@ def update_comment(db: Session, comment_no: int, user_no: int, update_data: Comm
     try:
         comment = (
             db.query(Comment)
-            .filter(Comment.no == comment_no, Comment.user_no == user_no, Comment.is_del is False)
+            .filter(
+                Comment.no == comment_no,
+                Comment.user_no == user_no,
+                Comment.is_del.is_(False),  # 수정
+            )
             .first()
         )
 
@@ -77,7 +84,11 @@ def delete_comment(db: Session, comment_no: int, user_no: int) -> CommentActionR
     try:
         comment = (
             db.query(Comment)
-            .filter(Comment.no == comment_no, Comment.user_no == user_no, Comment.is_del is False)
+            .filter(
+                Comment.no == comment_no,
+                Comment.user_no == user_no,
+                Comment.is_del.is_(False),  # 수정
+            )
             .first()
         )
 
@@ -104,7 +115,15 @@ def delete_comment(db: Session, comment_no: int, user_no: int) -> CommentActionR
 
 def like_comment(db: Session, comment_no: int) -> CommentActionResponse:
     try:
-        stmt = update(Comment).where(Comment.no == comment_no, Comment.is_del is False).values(like=Comment.like + 1)
+        print(f"Liking comment {comment_no}")  # 디버깅용
+        stmt = (
+            update(Comment)
+            .where(
+                Comment.no == comment_no,
+                Comment.is_del.is_(False),  # 수정
+            )
+            .values(like=Comment.like + 1)
+        )
         result = db.execute(stmt)
         db.commit()
 
@@ -122,7 +141,11 @@ def dislike_comment(db: Session, comment_no: int) -> CommentActionResponse:
     try:
         stmt = (
             update(Comment)
-            .where(Comment.no == comment_no, Comment.is_del is False, Comment.like > 0)
+            .where(
+                Comment.no == comment_no,
+                Comment.is_del.is_(False),  # 수정
+                Comment.like > 0,
+            )
             .values(like=Comment.like - 1)
         )
         result = db.execute(stmt)
