@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from models import Novel, NovelShorts, SourceType
+from models import GenreType, Novel, NovelShorts, SourcePlatformType, SourceType
 from novel.novel_query import get_post
 from novel.novel_schema import PostResponse
 from sqlalchemy.orm import Session
@@ -12,16 +12,16 @@ def test_get_post_success(db_session: Session):
         title="테스트 소설",
         author="테스트 작가",
         description="테스트 설명",
-        genres=[1],
+        genres=[GenreType.OTHER.value],
         cover_image="test.jpg",
         chapters=10,
         views=100,
         recommends=50,
         created_date=datetime.now(),
         last_uploaded_date=datetime.now(),
-        source_type=SourceType.MUNPIA.value,
+        source_type=SourceType.OTHER.value,
         source_url="http://test.com",
-        source_platform_type=1,
+        source_platform_type=SourcePlatformType.MUNPIA.value,
     )
 
     novel_shorts = NovelShorts(

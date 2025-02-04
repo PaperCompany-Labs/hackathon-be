@@ -55,7 +55,15 @@ class UserActiveLog(Base):
     created_date = Column(DateTime, nullable=False, default=datetime.now)
 
 
+class GenreType(enum.Enum):
+    OTHER = 0
+
+
 class SourceType(enum.Enum):
+    OTHER = 0
+
+
+class SourcePlatformType(enum.Enum):
     OTHER = 0
     MUNPIA = 1
     RIDI = 2
@@ -89,6 +97,11 @@ class Novel(Base):
 #     source_id = Column(Integer)  # 주입
 #     subtitle = Column(VARCHAR(50))
 #     content = Column(Text)
+
+
+class FormType(enum.Enum):
+    OTHER = 0
+    TEXT = 1
 
 
 class NovelShorts(Base):
