@@ -3,6 +3,8 @@ from typing import List
 from database import get_db
 from fastapi import APIRouter, Depends, HTTPException, Query
 from novel.novel_query import (
+    create_novel,
+    create_novel_shorts,
     get_post,
     get_posts,
     like_novel_shorts,
@@ -10,7 +12,15 @@ from novel.novel_query import (
     unlike_novel_shorts,
     unsave_novel_shorts,
 )
-from novel.novel_schema import LikeResponse, PostResponse, SaveResponse
+from novel.novel_schema import (
+    LikeResponse,
+    NovelCreate,
+    NovelResponse,
+    NovelShortsCreate,
+    NovelShortsResponse,
+    PostResponse,
+    SaveResponse,
+)
 from sqlalchemy.orm import Session
 from user.user_router import get_current_user
 
@@ -75,6 +85,32 @@ async def unsave_shorts(shorts_no: int, current_user: dict = Depends(get_current
         raise HTTPException(status_code=401, detail="로그인이 필요한 서비스입니다")
 
     result = unsave_novel_shorts(db, current_user["user_no"], shorts_no)
+    if not result.success:
+        raise HTTPException(status_code=400, detail=result.message)
+    return result
+
+
+@app.post("/novel", response_model=NovelResponse, description="소설 생성")
+async def create_novel_endpoint(
+    novel_data: NovelCreate, current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)
+):
+    if not current_user:
+        raise HTTPException(status_code=401, detail="로그인이 필요한 서비스입니다")
+
+    result = create_novel(db, novel_data)
+    if not result.success:
+        raise HTTPException(status_code=400, detail=result.message)
+    return result
+
+
+@app.post("/shorts", response_model=NovelShortsResponse, description="숏츠 생성")
+async def create_shorts_endpoint(
+    shorts_data: NovelShortsCreate, current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)
+):
+    if not current_user:
+        raise HTTPException(status_code=401, detail="로그인이 필요한 서비스입니다")
+
+    result = create_novel_shorts(db, shorts_data)
     if not result.success:
         raise HTTPException(status_code=400, detail=result.message)
     return result
