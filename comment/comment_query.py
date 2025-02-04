@@ -2,6 +2,7 @@ from comment.comment_schema import (
     CommentActionResponse,
     CommentCreate,
     CommentListResponse,
+    CommentResponse,
     CommentUpdate,
 )
 from models import Comment, NovelShorts
@@ -18,12 +19,30 @@ def get_comments(db: Session, novel_shorts_no: int) -> CommentListResponse:
             .all()
         )
 
-        return CommentListResponse(
-            success=True,
-            message="댓글을 성공적으로 조회했습니다",
-            # comments=[CommentResponse.model_validate(comment) for comment in comments],
-            comments=comments,
-        )
+        if not comments:
+            return CommentListResponse(success=True, message="댓글이 없습니다", comments=[])
+
+        # 댓글 변환
+        comment_list = []
+        for comment in comments:
+            try:
+                comment_dict = {
+                    "no": comment.no,
+                    "novel_shorts_no": comment.novel_shorts_no,
+                    "user_no": comment.user_no,
+                    "parent_no": comment.parent_no,
+                    "content": comment.content,
+                    "like": comment.like,
+                    "created_date": comment.created_date,
+                    "is_del": comment.is_del,
+                }
+                comment_response = CommentResponse(**comment_dict)
+                comment_list.append(comment_response)
+            except Exception as e:
+                print(f"Error converting comment {comment.no}: {str(e)}")
+                continue
+
+        return CommentListResponse(success=True, message="댓글을 성공적으로 조회했습니다", comments=comment_list)
     except Exception as e:
         print(f"Error in get_comments: {str(e)}")
         return CommentListResponse(success=False, message="댓글 조회 중 오류가 발생했습니다", comments=[])
