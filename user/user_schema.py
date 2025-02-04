@@ -44,6 +44,7 @@ class Token(BaseModel):
 
 class UserActiveCreate(BaseModel):
     novel_no: Optional[int] = None
+    novel_shorts_no: Optional[int] = None
     comment_no: Optional[int] = None
     active_type: int
     acted_date: datetime = datetime.now()
