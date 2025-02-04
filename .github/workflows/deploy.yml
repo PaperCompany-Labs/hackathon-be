@@ -9,6 +9,9 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
     - name: executing remote ssh commands using ssh key
       uses: appleboy/ssh-action@master
       with:
@@ -17,6 +20,6 @@ jobs:
         key: ${{ secrets.SSH_KEY }}
         port: 22
         script: |
-            cd ${{ github.event.repository.name }}
-            pwd
-            sh deploy-ssh.sh
+            cd ${{ secrets.REPO_PATH }}
+            git pull origin main
+            sudo systemctl restart hackathon-be.service
