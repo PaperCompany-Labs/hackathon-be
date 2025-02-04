@@ -4,9 +4,8 @@ from comment.comment_query import (
     dislike_comment,
     get_comments,
     like_comment,
-    update_comment,
 )
-from comment.comment_schema import CommentActionResponse, CommentCreate, CommentListResponse, CommentUpdate
+from comment.comment_schema import CommentActionResponse, CommentCreate, CommentListResponse
 from database import get_db
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -40,20 +39,20 @@ async def create_shorts_comment(
     return result
 
 
-@app.put("/comment/{comment_no}", response_model=CommentActionResponse)
-async def update_shorts_comment(
-    comment_no: int,
-    update_data: CommentUpdate,
-    current_user: dict = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    if not current_user:
-        raise HTTPException(status_code=401, detail="로그인이 필요한 서비스입니다")
+# @app.put("/comment/{comment_no}", response_model=CommentActionResponse)
+# async def update_shorts_comment(
+#     comment_no: int,
+#     update_data: CommentUpdate,
+#     current_user: dict = Depends(get_current_user),
+#     db: Session = Depends(get_db),
+# ):
+#     if not current_user:
+#         raise HTTPException(status_code=401, detail="로그인이 필요한 서비스입니다")
 
-    result = update_comment(db, comment_no, current_user["user_no"], update_data)
-    if not result.success:
-        raise HTTPException(status_code=400, detail=result.message)
-    return result
+#     result = update_comment(db, comment_no, current_user["user_no"], update_data)
+#     if not result.success:
+#         raise HTTPException(status_code=400, detail=result.message)
+#     return result
 
 
 @app.delete("/comment/{comment_no}", response_model=CommentActionResponse)
