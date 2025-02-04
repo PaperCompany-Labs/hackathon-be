@@ -12,6 +12,12 @@ def get_post(post_no: int, db: Session):
         return {"error": "Invalid database session", "msg": "데이터베이스 연결이 유효하지 않습니다."}
 
     try:
+        # 조회수 증가
+        view_stmt = update(NovelShorts).where(NovelShorts.no == post_no).values(views=NovelShorts.views + 1)
+        db.execute(view_stmt)
+        db.commit()
+
+        # 게시글 조회
         post = (
             db.query(
                 NovelShorts.no,
@@ -33,6 +39,7 @@ def get_post(post_no: int, db: Session):
                 NovelShorts.content,
                 NovelShorts.image,
                 NovelShorts.music,
+                NovelShorts.views.label("shorts_views"),
             )
             .join(Novel, Novel.no == NovelShorts.novel_no)
             .filter(NovelShorts.no == post_no)
@@ -50,7 +57,7 @@ def get_post(post_no: int, db: Session):
             genres=post.genres,
             cover_image=post.cover_image,
             chapters=post.chapters,
-            views=post.views,
+            views=post.shorts_views,
             recommends=post.recommends,
             created_date=post.created_date,
             last_uploaded_date=post.last_uploaded_date,
@@ -64,6 +71,7 @@ def get_post(post_no: int, db: Session):
             music=post.music,
         )
     except Exception as e:
+        db.rollback()  # 에러 발생 시 롤백
         return {"error": str(e), "msg": "게시글을 가져오는 중 오류가 발생했습니다."}
 
 
