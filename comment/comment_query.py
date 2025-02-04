@@ -2,7 +2,6 @@ from comment.comment_schema import (
     CommentActionResponse,
     CommentCreate,
     CommentListResponse,
-    CommentResponse,
     CommentUpdate,
 )
 from models import Comment, NovelShorts
@@ -14,10 +13,7 @@ def get_comments(db: Session, novel_shorts_no: int) -> CommentListResponse:
     try:
         comments = (
             db.query(Comment)
-            .filter(
-                Comment.novel_shorts_no == novel_shorts_no,
-                Comment.is_del.is_(False),  # 수정
-            )
+            .filter(Comment.novel_shorts_no == novel_shorts_no, Comment.is_del.is_(False))
             .order_by(Comment.created_date.asc())
             .all()
         )
@@ -25,7 +21,8 @@ def get_comments(db: Session, novel_shorts_no: int) -> CommentListResponse:
         return CommentListResponse(
             success=True,
             message="댓글을 성공적으로 조회했습니다",
-            comments=[CommentResponse.model_validate(comment) for comment in comments],
+            # comments=[CommentResponse.model_validate(comment) for comment in comments],
+            comments=comments,
         )
     except Exception as e:
         print(f"Error in get_comments: {str(e)}")
@@ -59,7 +56,7 @@ def update_comment(db: Session, comment_no: int, user_no: int, update_data: Comm
             .filter(
                 Comment.no == comment_no,
                 Comment.user_no == user_no,
-                Comment.is_del.is_(False),  # 수정
+                Comment.is_del.is_(False),
             )
             .first()
         )
@@ -87,7 +84,7 @@ def delete_comment(db: Session, comment_no: int, user_no: int) -> CommentActionR
             .filter(
                 Comment.no == comment_no,
                 Comment.user_no == user_no,
-                Comment.is_del.is_(False),  # 수정
+                Comment.is_del.is_(False),
             )
             .first()
         )
@@ -120,7 +117,7 @@ def like_comment(db: Session, comment_no: int) -> CommentActionResponse:
             update(Comment)
             .where(
                 Comment.no == comment_no,
-                Comment.is_del.is_(False),  # 수정
+                Comment.is_del.is_(False),
             )
             .values(like=Comment.like + 1)
         )
@@ -143,7 +140,7 @@ def dislike_comment(db: Session, comment_no: int) -> CommentActionResponse:
             update(Comment)
             .where(
                 Comment.no == comment_no,
-                Comment.is_del.is_(False),  # 수정
+                Comment.is_del.is_(False),
                 Comment.like > 0,
             )
             .values(like=Comment.like - 1)
