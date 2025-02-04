@@ -129,3 +129,16 @@ class Comment(Base):
     is_del = Column(Boolean, nullable=False, default=False)
     content = Column(Text)
     like = Column(Integer, default=0)
+
+
+class ActiveType(enum.Enum):
+    VIEW_START = 1  # 시청 시작
+    VIEW_END = 2  # 시청 종료
+    LIKE = 3  # 좋아요
+    UNLIKE = 4  # 좋아요 취소
+    COMMENT = 5  # 덧글
+    COMMENT_DELETE = 6  # 덧글 삭제
+    COMMENT_UPDATE = 7  # 덧글 수정
+    SAVE = 8  # 저장
+    UNSAVE = 9  # 저장 취소
+    URL_CLICK = 10  # URL 클릭

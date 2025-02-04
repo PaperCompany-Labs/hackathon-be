@@ -1,4 +1,5 @@
-from typing import Literal
+from datetime import datetime
+from typing import Literal, Optional
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -39,3 +40,15 @@ class LoginForm(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str
+
+
+class UserActiveCreate(BaseModel):
+    novel_no: Optional[int] = None
+    comment_no: Optional[int] = None
+    active_type: int
+    acted_date: datetime = datetime.now()
+
+
+class UserActiveResponse(BaseModel):
+    success: bool
+    message: str
