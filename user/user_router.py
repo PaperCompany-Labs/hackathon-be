@@ -10,6 +10,8 @@ from pydantic import ValidationError
 from sqlalchemy.orm import Session
 from starlette.responses import JSONResponse
 from user import user_query, user_schema
+from user.user_query import create_active_log
+from user.user_schema import UserActiveCreate, UserActiveResponse
 
 
 load_dotenv()
@@ -18,6 +20,7 @@ ALGORITHM = os.getenv("ALGORITHM")
 ACCESS_TOKEN_EXPIRE_MINUTES = float(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES"))
 
 app = APIRouter(prefix="/user")
+active_router = APIRouter(prefix="/active")
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
@@ -149,3 +152,17 @@ async def get_current_user(request: Request, db: Session = Depends(get_db)) -> O
         return {"user_id": user_id, "user_no": user_no}
     except JWTError:
         raise credentials_exception
+
+
+@active_router.post("/log", response_model=UserActiveResponse)
+async def log_user_activity(
+    active_data: UserActiveCreate, current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)
+):
+    if not current_user:
+        raise HTTPException(status_code=401, detail="로그인이 필요한 서비스입니다")
+
+    result = create_active_log(db, current_user["user_no"], active_data)
+    if not result.success:
+        raise HTTPException(status_code=400, detail=result.message)
+
+    return result
