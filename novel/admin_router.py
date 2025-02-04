@@ -11,10 +11,10 @@ from novel.novel_schema import (
 from sqlalchemy.orm import Session
 
 
-admin_router = APIRouter(prefix="/admin/novel", tags=["admin"])
+admin_router = APIRouter()
 
 
-@admin_router.post("/novel", response_model=NovelResponse, description="[관리자] 소설 생성")
+@admin_router.post("/admin/novel", response_model=NovelResponse, description="[관리자] 소설 생성")
 async def create_novel_endpoint(request: NovelCreateWithAdmin, db: Session = Depends(get_db)):
     # 관리자 코드 검증
     if request.admin_code != settings.ADMIN_CODE:
@@ -26,7 +26,7 @@ async def create_novel_endpoint(request: NovelCreateWithAdmin, db: Session = Dep
     return result
 
 
-@admin_router.post("/shorts", response_model=NovelShortsResponse, description="[관리자] 숏츠 생성")
+@admin_router.post("/admin/shorts", response_model=NovelShortsResponse, description="[관리자] 숏츠 생성")
 async def create_shorts_endpoint(request: NovelShortsCreateWithAdmin, db: Session = Depends(get_db)):
     # 관리자 코드 검증
     if request.admin_code != settings.ADMIN_CODE:
