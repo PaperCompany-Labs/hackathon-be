@@ -86,6 +86,7 @@ def get_posts(db: Session, limit: int = 10, offset: int = 0):
                 Novel.source_url,
                 NovelShorts.likes,
                 NovelShorts.saves,
+                NovelShorts.comments,
                 NovelShorts.content,
                 NovelShorts.image,
                 NovelShorts.music,
@@ -100,31 +101,39 @@ def get_posts(db: Session, limit: int = 10, offset: int = 0):
         if not posts:
             return []
 
-        return [
-            PostResponse(
-                no=post.no,
-                title=post.title,
-                author=post.author,
-                description=post.description,
-                genres=post.genres,
-                cover_image=post.cover_image,
-                chapters=post.chapters,
-                views=post.views,
-                recommends=post.recommends,
-                created_date=post.created_date,
-                last_uploaded_date=post.last_uploaded_date,
-                source_platform=str(post.source_type),
-                source_url=post.source_url,
-                likes=post.likes,
-                saves=post.saves,
-                comments=post.comments,
-                content=post.content,
-                image=post.image,
-                music=post.music,
-            )
-            for post in posts
-        ]
+        result_list = []
+        for post in posts:
+            try:
+                post_dict = {
+                    "no": post.no,
+                    "title": post.title,
+                    "author": post.author,
+                    "description": post.description,
+                    "genres": post.genres,
+                    "cover_image": post.cover_image,
+                    "chapters": post.chapters,
+                    "views": post.views,
+                    "recommends": post.recommends,
+                    "created_date": post.created_date,
+                    "last_uploaded_date": post.last_uploaded_date,
+                    "source_platform": str(post.source_type),
+                    "source_url": post.source_url,
+                    "likes": post.likes,
+                    "saves": post.saves,
+                    "comments": post.comments,
+                    "content": post.content,
+                    "image": post.image,
+                    "music": post.music,
+                }
+                result_list.append(post_dict)
+            except Exception as e:
+                print(f"Error converting post {post.no}: {str(e)}")
+                continue
+
+        return result_list
+
     except Exception as e:
+        print(f"Error in get_posts: {str(e)}")
         return {"error": str(e), "msg": "게시글 목록을 가져오는 중 오류가 발생했습니다."}
 
 
