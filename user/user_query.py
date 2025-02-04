@@ -37,6 +37,7 @@ def create_active_log(db: Session, user_no: int, active_data: UserActiveCreate) 
         log = UserActiveLog(
             user_no=user_no,
             novel_no=active_data.novel_no,
+            novel_shorts_no=active_data.novel_shorts_no,
             comment_no=active_data.comment_no,
             active_type=active_data.active_type,
             acted_date=active_data.acted_date,
