@@ -20,10 +20,10 @@ load_dotenv(dotenv_path=env_path, override=True)
 
 ADMIN_CODE = os.getenv("ADMIN_CODE", "admin_code")
 
-admin_router = APIRouter()
+app = APIRouter(prefix="/admin")
 
 
-@admin_router.post("/admin/novel", response_model=NovelResponse, description="[관리자] 소설 생성")
+@app.post("/novel", response_model=NovelResponse, description="[관리자] 소설 생성")
 async def create_novel_endpoint(request: NovelCreateWithAdmin, db: Session = Depends(get_db)):
     # 관리자 코드 검증
     if request.admin_code != ADMIN_CODE:
@@ -35,7 +35,7 @@ async def create_novel_endpoint(request: NovelCreateWithAdmin, db: Session = Dep
     return result
 
 
-@admin_router.post("/admin/shorts", response_model=NovelShortsResponse, description="[관리자] 숏츠 생성")
+@app.post("/shorts", response_model=NovelShortsResponse, description="[관리자] 숏츠 생성")
 async def create_shorts_endpoint(request: NovelShortsCreateWithAdmin, db: Session = Depends(get_db)):
     # 관리자 코드 검증
     if request.admin_code != ADMIN_CODE:
