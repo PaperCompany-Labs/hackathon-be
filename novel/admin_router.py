@@ -6,10 +6,18 @@ from uuid import uuid4
 from database import get_db
 from dotenv import load_dotenv
 from fastapi import APIRouter, Depends, Form, HTTPException, UploadFile
+from fastapi.responses import PlainTextResponse
 from models import NovelShorts
-from novel.novel_query import create_novel, create_novel_shorts, update_shorts_media
+from novel.novel_query import (
+    create_novel,
+    create_novel_shorts,
+    get_novel_detail,
+    get_novel_shorts_csv,
+    update_shorts_media,
+)
 from novel.novel_schema import (
     NovelCreateWithAdmin,
+    NovelDetailResponse,
     NovelResponse,
     NovelShortsCreate,
     NovelShortsResponse,
@@ -175,3 +183,41 @@ async def update_shorts_media_endpoint(
         if image_path and os.path.exists(UPLOAD_DIR / image_path):
             os.remove(UPLOAD_DIR / image_path)
         raise e
+
+
+@app.get("/novel/{novel_no}", response_model=NovelDetailResponse, description="[관리자] 소설 상세 정보 조회")
+async def read_novel_detail(
+    novel_no: int,
+    admin_code: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    if admin_code != ADMIN_CODE:
+        raise HTTPException(status_code=403, detail="잘못된 관리자 코드입니다")
+
+    result = get_novel_detail(db, novel_no)
+    if isinstance(result, dict) and "error" in result:
+        raise HTTPException(status_code=400, detail=result["msg"])
+    return result
+
+
+@app.get(
+    "/novel/export/csv",
+    response_class=PlainTextResponse,
+    description="[관리자] 소설 및 숏츠 데이터 CSV 추출",
+)
+async def export_novel_shorts_csv(
+    admin_code: str,
+    db: Session = Depends(get_db),
+):
+    if admin_code != ADMIN_CODE:
+        raise HTTPException(status_code=403, detail="잘못된 관리자 코드입니다")
+
+    csv_content, data = get_novel_shorts_csv(db)
+    if not csv_content:
+        raise HTTPException(status_code=404, detail="데이터가 없습니다")
+
+    return PlainTextResponse(
+        content=csv_content,
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment;filename=novel_shorts_data.csv"},
+    )

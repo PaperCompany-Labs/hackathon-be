@@ -1,4 +1,6 @@
-from typing import Optional
+import csv
+from io import StringIO
+from typing import List, Optional, Tuple
 
 from models import Comment, Novel, NovelShorts, UserSave
 from novel.novel_schema import (
@@ -393,3 +395,48 @@ def update_shorts_media(
         print(f"Error in update_shorts_media: {str(e)}")
         db.rollback()
         return NovelShortsResponse(success=False, message="미디어 업데이트 중 오류가 발생했습니다")
+
+
+def get_novel_shorts_csv(db: Session) -> Tuple[str, List[dict]]:
+    try:
+        # 소설과 숏츠 조인하여 데이터 조회
+        results = (
+            db.query(
+                Novel.no.label("novel_no"),
+                NovelShorts.no.label("novel_short_no"),
+                NovelShorts.content,
+                NovelShorts.views,
+                NovelShorts.likes,
+                NovelShorts.saves,
+            )
+            .join(NovelShorts, Novel.no == NovelShorts.novel_no)
+            .order_by(Novel.no, NovelShorts.no)
+            .all()
+        )
+
+        if not results:
+            return "", []
+
+        # CSV 파일 생성
+        output = StringIO()
+        writer = csv.writer(output)
+        writer.writerow(["novel_no", "novel_short_no", "content", "views", "likes", "saves"])
+
+        data = []
+        for row in results:
+            data_row = {
+                "novel_no": row.novel_no,
+                "novel_short_no": row.novel_short_no,
+                "content": row.content,
+                "views": row.views,
+                "likes": row.likes,
+                "saves": row.saves,
+            }
+            data.append(data_row)
+            writer.writerow(data_row.values())
+
+        return output.getvalue(), data
+
+    except Exception as e:
+        print(f"Error in get_novel_shorts_csv: {str(e)}")
+        return "", []
