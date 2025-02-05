@@ -1,6 +1,7 @@
 from comment import comment_router
 from database import engine
 from fastapi import FastAPI
+from fastapi.responses import RedirectResponse
 import models
 from novel import admin_router, novel_router
 from starlette.middleware.cors import CORSMiddleware
@@ -28,5 +29,10 @@ app.include_router(admin_router.app, tags=["admin"])
 
 
 @app.get("/")
+async def root():
+    return RedirectResponse(url="/docs")
+
+
+@app.get("/health_check")
 async def health_check():
     return {"version": "1.0.0"}
