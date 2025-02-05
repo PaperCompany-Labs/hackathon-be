@@ -1,10 +1,11 @@
 import os
 from pathlib import Path
+from typing import Optional
 from uuid import uuid4
 
 from database import get_db
 from dotenv import load_dotenv
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, Form, HTTPException, UploadFile
 from novel.novel_query import create_novel, create_novel_shorts
 from novel.novel_schema import (
     NovelCreateWithAdmin,
@@ -78,8 +79,8 @@ async def create_shorts_endpoint(
     novel_no: int = Form(...),
     form_type: int = Form(...),
     content: str = Form(...),
-    image_file: UploadFile = File(default=None),
-    music_file: UploadFile = File(default=None),
+    image_file: Optional[UploadFile] = None,
+    music_file: Optional[UploadFile] = None,
     db: Session = Depends(get_db),
 ):
     # 관리자 코드 검증
@@ -90,9 +91,9 @@ async def create_shorts_endpoint(
     music_path = ""
     image_path = ""
     try:
-        if music_file:
+        if music_file and music_file.filename:
             music_path = await save_file(music_file, "music")
-        if image_file:
+        if image_file and image_file.filename:
             image_path = await save_file(image_file, "image")
 
         # 숏츠 데이터 생성
