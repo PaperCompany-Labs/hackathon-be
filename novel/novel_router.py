@@ -45,7 +45,7 @@ async def like_shorts(shorts_no: int, current_user: dict = Depends(get_current_u
     if not current_user:
         raise HTTPException(status_code=401, detail="로그인이 필요한 서비스입니다")
 
-    result = like_novel_shorts(db, shorts_no)
+    result = like_novel_shorts(db, current_user["user_no"], shorts_no)
     if not result.success:
         raise HTTPException(status_code=400, detail=result.message)
     return result
@@ -56,7 +56,7 @@ async def unlike_shorts(shorts_no: int, current_user: dict = Depends(get_current
     if not current_user:
         raise HTTPException(status_code=401, detail="로그인이 필요한 서비스입니다")
 
-    result = unlike_novel_shorts(db, shorts_no)
+    result = unlike_novel_shorts(db, current_user["user_no"], shorts_no)
     if not result.success:
         raise HTTPException(status_code=400, detail=result.message)
     return result

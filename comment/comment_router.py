@@ -76,7 +76,7 @@ async def like_shorts_comment(
     if not current_user:
         raise HTTPException(status_code=401, detail="로그인이 필요한 서비스입니다")
 
-    result = like_comment(db, comment_no)
+    result = like_comment(db, current_user["user_no"], comment_no)
     if not result.success:
         raise HTTPException(status_code=400, detail=result.message)
     return result
@@ -89,7 +89,7 @@ async def dislike_shorts_comment(
     if not current_user:
         raise HTTPException(status_code=401, detail="로그인이 필요한 서비스입니다")
 
-    result = dislike_comment(db, comment_no)
+    result = dislike_comment(db, current_user["user_no"], comment_no)
     if not result.success:
         raise HTTPException(status_code=400, detail=result.message)
     return result
