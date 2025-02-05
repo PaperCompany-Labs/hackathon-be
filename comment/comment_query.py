@@ -5,7 +5,7 @@ from comment.comment_schema import (
     CommentResponse,
     CommentUpdate,
 )
-from models import Comment, NovelShorts
+from models import Comment, NovelShorts, UserLike
 from sqlalchemy import update
 from sqlalchemy.orm import Session
 
@@ -129,50 +129,68 @@ def delete_comment(db: Session, comment_no: int, user_no: int) -> CommentActionR
         return CommentActionResponse(success=False, message="댓글 삭제 중 오류가 발생했습니다")
 
 
-def like_comment(db: Session, comment_no: int) -> CommentActionResponse:
+def like_comment(db: Session, user_no: int, comment_no: int) -> CommentActionResponse:
     try:
-        print(f"Liking comment {comment_no}")  # 디버깅용
-        stmt = (
-            update(Comment)
-            .where(
-                Comment.no == comment_no,
-                Comment.is_del.is_(False),
-            )
-            .values(like=Comment.like + 1)
+        # 댓글 존재 여부 확인
+        comment = db.query(Comment).filter(Comment.no == comment_no, Comment.is_del.is_(False)).first()
+        if not comment:
+            return CommentActionResponse(success=False, message="존재하지 않는 댓글입니다")
+
+        # 이미 좋아요를 눌렀는지 확인
+        existing_like = (
+            db.query(UserLike)
+            .filter(UserLike.user_no == user_no, UserLike.comment_no == comment_no, UserLike.is_del.is_(False))
+            .first()
         )
-        result = db.execute(stmt)
+
+        if existing_like:
+            return CommentActionResponse(success=False, message="이미 좋아요를 눌렀습니다")
+
+        # 새로운 좋아요 기록 생성 또는 기존 기록 업데이트
+        like_record = db.query(UserLike).filter(UserLike.user_no == user_no, UserLike.comment_no == comment_no).first()
+
+        if like_record:
+            like_record.is_del = False
+        else:
+            like_record = UserLike(user_no=user_no, comment_no=comment_no)
+            db.add(like_record)
+
+        # 댓글의 좋아요 수 증가
+        comment.like += 1
         db.commit()
 
-        if result.rowcount == 0:
-            return CommentActionResponse(success=False, message="좋아요할 댓글을 찾을 수 없습니다")
-
         return CommentActionResponse(success=True, message="댓글에 좋아요를 눌렀습니다")
+
     except Exception as e:
         print(f"Error in like_comment: {str(e)}")
         db.rollback()
         return CommentActionResponse(success=False, message="좋아요 처리 중 오류가 발생했습니다")
 
 
-def dislike_comment(db: Session, comment_no: int) -> CommentActionResponse:
+def dislike_comment(db: Session, user_no: int, comment_no: int) -> CommentActionResponse:
     try:
-        stmt = (
-            update(Comment)
-            .where(
-                Comment.no == comment_no,
-                Comment.is_del.is_(False),
-                Comment.like > 0,
-            )
-            .values(like=Comment.like - 1)
+        # 댓글 존재 여부 확인
+        comment = db.query(Comment).filter(Comment.no == comment_no, Comment.is_del.is_(False)).first()
+        if not comment:
+            return CommentActionResponse(success=False, message="존재하지 않는 댓글입니다")
+
+        # 좋아요 기록 확인
+        like_record = (
+            db.query(UserLike)
+            .filter(UserLike.user_no == user_no, UserLike.comment_no == comment_no, UserLike.is_del.is_(False))
+            .first()
         )
-        result = db.execute(stmt)
+
+        if not like_record:
+            return CommentActionResponse(success=False, message="좋아요 기록이 없습니다")
+
+        # 좋아요 취소 처리
+        like_record.is_del = True
+        comment.like -= 1
         db.commit()
 
-        if result.rowcount == 0:
-            return CommentActionResponse(
-                success=False, message="좋아요 취소할 댓글을 찾을 수 없거나, 이미 좋아요가 0입니다"
-            )
-
         return CommentActionResponse(success=True, message="댓글 좋아요를 취소했습니다")
+
     except Exception as e:
         print(f"Error in dislike_comment: {str(e)}")
         db.rollback()

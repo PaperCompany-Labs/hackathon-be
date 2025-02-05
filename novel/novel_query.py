@@ -2,7 +2,7 @@ import csv
 from io import StringIO
 from typing import List, Optional, Tuple
 
-from models import Comment, Novel, NovelShorts, UserSave
+from models import Comment, Novel, NovelShorts, UserLike, UserSave
 from novel.novel_schema import (
     CommentResponse,
     LikeResponse,
@@ -15,7 +15,7 @@ from novel.novel_schema import (
     PostResponse,
     SaveResponse,
 )
-from sqlalchemy import delete, update
+from sqlalchemy import update
 from sqlalchemy.orm import Session
 
 
@@ -160,99 +160,144 @@ def get_posts(db: Session, limit: int = 10, offset: int = 0):
         return {"error": str(e), "msg": "게시글 목록을 가져오는 중 오류가 발생했습니다."}
 
 
-def like_novel_shorts(db: Session, novel_shorts_no: int) -> LikeResponse:
+def like_novel_shorts(db: Session, user_no: int, shorts_no: int) -> LikeResponse:
     try:
-        # 좋아요 수 증가
-        stmt = (
-            update(NovelShorts)
-            .where(NovelShorts.no == novel_shorts_no)
-            .values(likes=NovelShorts.likes + 1)
-            .returning(NovelShorts.likes)
+        # 숏츠 존재 여부 확인
+        shorts = db.query(NovelShorts).filter(NovelShorts.no == shorts_no).first()
+        if not shorts:
+            return LikeResponse(success=False, message="존재하지 않는 숏츠입니다", likes=0)
+
+        # 이미 좋아요를 눌렀는지 확인
+        existing_like = (
+            db.query(UserLike)
+            .filter(UserLike.user_no == user_no, UserLike.novel_shorts_no == shorts_no, UserLike.is_del.is_(False))
+            .first()
         )
-        result = db.execute(stmt)
+
+        if existing_like:
+            return LikeResponse(success=False, message="이미 좋아요를 눌렀습니다", likes=shorts.likes)
+
+        # 새로운 좋아요 기록 생성 또는 기존 기록 업데이트
+        like_record = (
+            db.query(UserLike).filter(UserLike.user_no == user_no, UserLike.novel_shorts_no == shorts_no).first()
+        )
+
+        if like_record:
+            like_record.is_del = False
+        else:
+            like_record = UserLike(user_no=user_no, novel_no=shorts.novel_no, novel_shorts_no=shorts_no)
+            db.add(like_record)
+
+        # 숏츠의 좋아요 수 증가
+        shorts.likes += 1
         db.commit()
 
-        updated_likes = result.scalar()
-        return LikeResponse(success=True, message="좋아요를 눌렀습니다", likes=updated_likes)
-    except Exception:
+        return LikeResponse(success=True, message="좋아요를 눌렀습니다", likes=shorts.likes)
+
+    except Exception as e:
+        print(f"Error in like_novel_shorts: {str(e)}")
         db.rollback()
-        return LikeResponse(success=False, message="좋아요 처리 중 오류가 발생했습니다", likes=-1)
+        return LikeResponse(success=False, message="좋아요 처리 중 오류가 발생했습니다", likes=0)
 
 
-def unlike_novel_shorts(db: Session, novel_shorts_no: int) -> LikeResponse:
+def unlike_novel_shorts(db: Session, user_no: int, shorts_no: int) -> LikeResponse:
     try:
-        # 좋아요 수 감소
-        stmt = (
-            update(NovelShorts)
-            .where(NovelShorts.no == novel_shorts_no, NovelShorts.likes > 0)
-            .values(likes=NovelShorts.likes - 1)
-            .returning(NovelShorts.likes)
+        # 숏츠 존재 여부 확인
+        shorts = db.query(NovelShorts).filter(NovelShorts.no == shorts_no).first()
+        if not shorts:
+            return LikeResponse(success=False, message="존재하지 않는 숏츠입니다", likes=0)
+
+        # 좋아요 기록 확인
+        like_record = (
+            db.query(UserLike)
+            .filter(UserLike.user_no == user_no, UserLike.novel_shorts_no == shorts_no, UserLike.is_del.is_(False))
+            .first()
         )
-        result = db.execute(stmt)
+
+        if not like_record:
+            return LikeResponse(success=False, message="좋아요 기록이 없습니다", likes=shorts.likes)
+
+        # 좋아요 취소 처리
+        like_record.is_del = True
+        shorts.likes -= 1
         db.commit()
 
-        updated_likes = result.scalar()
-        return LikeResponse(success=True, message="좋아요를 취소했습니다", likes=updated_likes)
-    except Exception:
+        return LikeResponse(success=True, message="좋아요를 취소했습니다", likes=shorts.likes)
+
+    except Exception as e:
+        print(f"Error in unlike_novel_shorts: {str(e)}")
         db.rollback()
-        return LikeResponse(success=False, message="좋아요 취소 처리 중 오류가 발생했습니다", likes=-1)
+        return LikeResponse(success=False, message="좋아요 취소 중 오류가 발생했습니다", likes=0)
 
 
-def save_novel_shorts(db: Session, user_no: int, novel_shorts_no: int) -> SaveResponse:
+def save_novel_shorts(db: Session, user_no: int, shorts_no: int) -> SaveResponse:
     try:
+        # 숏츠 존재 여부 확인
+        shorts = db.query(NovelShorts).filter(NovelShorts.no == shorts_no).first()
+        if not shorts:
+            return SaveResponse(success=False, message="존재하지 않는 숏츠입니다", saves=0)
+
         # 이미 저장했는지 확인
-        existing = (
-            db.query(UserSave).filter(UserSave.user_no == user_no, UserSave.novel_shorts_no == novel_shorts_no).first()
+        existing_save = (
+            db.query(UserSave)
+            .filter(UserSave.user_no == user_no, UserSave.novel_shorts_no == shorts_no, UserSave.is_del.is_(False))
+            .first()
         )
 
-        if existing:
-            return SaveResponse(success=False, message="이미 저장된 게시물입니다", saves=-1)
+        if existing_save:
+            return SaveResponse(success=False, message="이미 저장된 숏츠입니다", saves=shorts.saves)
 
-        # 저장 처리
-        new_save = UserSave(user_no=user_no, novel_shorts_no=novel_shorts_no)
-        db.add(new_save)
-
-        # 저장 수 증가
-        stmt = (
-            update(NovelShorts)
-            .where(NovelShorts.no == novel_shorts_no)
-            .values(saves=NovelShorts.saves + 1)
-            .returning(NovelShorts.saves)
+        # 새로운 저장 기록 생성 또는 기존 기록 업데이트
+        save_record = (
+            db.query(UserSave).filter(UserSave.user_no == user_no, UserSave.novel_shorts_no == shorts_no).first()
         )
-        result = db.execute(stmt)
+
+        if save_record:
+            save_record.is_del = False
+        else:
+            save_record = UserSave(user_no=user_no, novel_no=shorts.novel_no, novel_shorts_no=shorts_no)
+            db.add(save_record)
+
+        # 숏츠의 저장 수 증가
+        shorts.saves += 1
         db.commit()
 
-        updated_saves = result.scalar()
-        return SaveResponse(success=True, message="저장되었습니다", saves=updated_saves)
-    except Exception:
+        return SaveResponse(success=True, message="숏츠를 저장했습니다", saves=shorts.saves)
+
+    except Exception as e:
+        print(f"Error in save_novel_shorts: {str(e)}")
         db.rollback()
-        return SaveResponse(success=False, message="저장 처리 중 오류가 발생했습니다", saves=-1)
+        return SaveResponse(success=False, message="저장 처리 중 오류가 발생했습니다", saves=0)
 
 
-def unsave_novel_shorts(db: Session, user_no: int, novel_shorts_no: int) -> SaveResponse:
+def unsave_novel_shorts(db: Session, user_no: int, shorts_no: int) -> SaveResponse:
     try:
-        # 저장 기록 삭제
-        delete_stmt = delete(UserSave).where(UserSave.user_no == user_no, UserSave.novel_shorts_no == novel_shorts_no)
-        result = db.execute(delete_stmt)
+        # 숏츠 존재 여부 확인
+        shorts = db.query(NovelShorts).filter(NovelShorts.no == shorts_no).first()
+        if not shorts:
+            return SaveResponse(success=False, message="존재하지 않는 숏츠입니다", saves=0)
 
-        if result.rowcount == 0:
-            return SaveResponse(success=False, message="저장되지 않은 게시물입니다", saves=-1)
-
-        # 저장 수 감소
-        update_stmt = (
-            update(NovelShorts)
-            .where(NovelShorts.no == novel_shorts_no, NovelShorts.saves > 0)
-            .values(saves=NovelShorts.saves - 1)
-            .returning(NovelShorts.saves)
+        # 저장 기록 확인
+        save_record = (
+            db.query(UserSave)
+            .filter(UserSave.user_no == user_no, UserSave.novel_shorts_no == shorts_no, UserSave.is_del.is_(False))
+            .first()
         )
-        result = db.execute(update_stmt)
+
+        if not save_record:
+            return SaveResponse(success=False, message="저장 기록이 없습니다", saves=shorts.saves)
+
+        # 저장 취소 처리
+        save_record.is_del = True
+        shorts.saves -= 1
         db.commit()
 
-        updated_saves = result.scalar()
-        return SaveResponse(success=True, message="저장이 취소되었습니다", saves=updated_saves)
-    except Exception:
+        return SaveResponse(success=True, message="저장을 취소했습니다", saves=shorts.saves)
+
+    except Exception as e:
+        print(f"Error in unsave_novel_shorts: {str(e)}")
         db.rollback()
-        return SaveResponse(success=False, message="저장 취소 처리 중 오류가 발생했습니다", saves=-1)
+        return SaveResponse(success=False, message="저장 취소 중 오류가 발생했습니다", saves=0)
 
 
 def create_novel(db: Session, novel_data: NovelCreate) -> NovelResponse:

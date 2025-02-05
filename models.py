@@ -41,6 +41,18 @@ class UserSave(Base):
     user_no = Column(Integer, ForeignKey("user.no"))
     novel_no = Column(Integer, ForeignKey("novel.no"))
     novel_shorts_no = Column(Integer, ForeignKey("novel_shorts.no"))
+    is_del = Column(Boolean, nullable=False, default=False)
+
+
+class UserLike(Base):
+    __tablename__ = "user_like"
+
+    no = Column(Integer, primary_key=True, autoincrement=True)
+    user_no = Column(Integer, ForeignKey("user.no"))
+    novel_no = Column(Integer, ForeignKey("novel.no"))
+    novel_shorts_no = Column(Integer, ForeignKey("novel_shorts.no"))
+    comment_no = Column(Integer, ForeignKey("comment.no"), nullable=True)
+    is_del = Column(Boolean, nullable=False, default=False)
 
 
 class UserActiveLog(Base):
