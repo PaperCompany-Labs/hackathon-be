@@ -3,8 +3,6 @@ from typing import List
 from database import get_db
 from fastapi import APIRouter, Depends, HTTPException, Query
 from novel.novel_query import (
-    create_novel,
-    create_novel_shorts,
     get_novel_detail,
     get_post,
     get_posts,
@@ -15,11 +13,7 @@ from novel.novel_query import (
 )
 from novel.novel_schema import (
     LikeResponse,
-    NovelCreate,
     NovelDetailResponse,
-    NovelResponse,
-    NovelShortsCreate,
-    NovelShortsResponse,
     PostResponse,
     SaveResponse,
 )
@@ -92,30 +86,30 @@ async def unsave_shorts(shorts_no: int, current_user: dict = Depends(get_current
     return result
 
 
-@app.post("/novel", response_model=NovelResponse, description="소설 생성")
-async def create_novel_endpoint(
-    novel_data: NovelCreate, current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)
-):
-    if not current_user:
-        raise HTTPException(status_code=401, detail="로그인이 필요한 서비스입니다")
+# @app.post("/novel", response_model=NovelResponse, description="소설 생성")
+# async def create_novel_endpoint(
+#     novel_data: NovelCreate, current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)
+# ):
+#     if not current_user:
+#         raise HTTPException(status_code=401, detail="로그인이 필요한 서비스입니다")
 
-    result = create_novel(db, novel_data)
-    if not result.success:
-        raise HTTPException(status_code=400, detail=result.message)
-    return result
+#     result = create_novel(db, novel_data)
+#     if not result.success:
+#         raise HTTPException(status_code=400, detail=result.message)
+#     return result
 
 
-@app.post("/shorts", response_model=NovelShortsResponse, description="숏츠 생성")
-async def create_shorts_endpoint(
-    shorts_data: NovelShortsCreate, current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)
-):
-    if not current_user:
-        raise HTTPException(status_code=401, detail="로그인이 필요한 서비스입니다")
+# @app.post("/shorts", response_model=NovelShortsResponse, description="숏츠 생성")
+# async def create_shorts_endpoint(
+#     shorts_data: NovelShortsCreate, current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)
+# ):
+#     if not current_user:
+#         raise HTTPException(status_code=401, detail="로그인이 필요한 서비스입니다")
 
-    result = create_novel_shorts(db, shorts_data)
-    if not result.success:
-        raise HTTPException(status_code=400, detail=result.message)
-    return result
+#     result = create_novel_shorts(db, shorts_data)
+#     if not result.success:
+#         raise HTTPException(status_code=400, detail=result.message)
+#     return result
 
 
 @app.get("/novel/{novel_no}", response_model=NovelDetailResponse, description="소설 상세 정보 조회")
