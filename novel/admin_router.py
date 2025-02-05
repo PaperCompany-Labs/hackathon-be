@@ -4,7 +4,7 @@ from uuid import uuid4
 
 from database import get_db
 from dotenv import load_dotenv
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from novel.novel_query import create_novel, create_novel_shorts
 from novel.novel_schema import (
     NovelCreateWithAdmin,
@@ -74,12 +74,12 @@ async def create_novel_endpoint(request: NovelCreateWithAdmin, db: Session = Dep
 
 @app.post("/shorts", response_model=NovelShortsResponse, description="[관리자] 숏츠 생성")
 async def create_shorts_endpoint(
-    admin_code: str,
-    novel_no: int,
-    form_type: int,
-    content: str,
-    image_file: UploadFile = File(None),
-    music_file: UploadFile = File(None),
+    admin_code: str = Form(...),
+    novel_no: int = Form(...),
+    form_type: int = Form(...),
+    content: str = Form(...),
+    image_file: UploadFile = File(default=None),
+    music_file: UploadFile = File(default=None),
     db: Session = Depends(get_db),
 ):
     # 관리자 코드 검증
