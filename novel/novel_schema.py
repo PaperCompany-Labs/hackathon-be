@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import List, Optional
 
+from fastapi import UploadFile
 from pydantic import BaseModel
 
 
@@ -91,3 +92,4 @@ class NovelCreateWithAdmin(AdminRequest):
 
 class NovelShortsCreateWithAdmin(AdminRequest):
     shorts_data: NovelShortsCreate
+    music_file: Optional[UploadFile] = None  # 음악 파일은 선택사항
