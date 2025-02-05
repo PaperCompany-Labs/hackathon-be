@@ -1,3 +1,5 @@
+from typing import Optional
+
 from models import Comment, Novel, NovelShorts, UserSave
 from novel.novel_schema import (
     CommentResponse,
@@ -366,3 +368,28 @@ def get_novel_detail(db: Session, novel_no: int):
     except Exception as e:
         print(f"Error in get_novel_detail: {str(e)}")
         return {"error": str(e), "msg": "소설 정보를 가져오는 중 오류가 발생했습니다"}
+
+
+def update_shorts_media(
+    db: Session, shorts_no: int, image: Optional[str] = None, music: Optional[str] = None
+) -> NovelShortsResponse:
+    try:
+        shorts = db.query(NovelShorts).filter(NovelShorts.no == shorts_no).first()
+        if not shorts:
+            return NovelShortsResponse(success=False, message="존재하지 않는 숏츠입니다")
+
+        update_data = {}
+        if image is not None:
+            update_data["image"] = image
+        if music is not None:
+            update_data["music"] = music
+
+        if update_data:
+            db.query(NovelShorts).filter(NovelShorts.no == shorts_no).update(update_data)
+            db.commit()
+
+        return NovelShortsResponse(success=True, message="미디어가 업데이트되었습니다", shorts_no=shorts_no)
+    except Exception as e:
+        print(f"Error in update_shorts_media: {str(e)}")
+        db.rollback()
+        return NovelShortsResponse(success=False, message="미디어 업데이트 중 오류가 발생했습니다")

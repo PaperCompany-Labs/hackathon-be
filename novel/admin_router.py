@@ -6,7 +6,8 @@ from uuid import uuid4
 from database import get_db
 from dotenv import load_dotenv
 from fastapi import APIRouter, Depends, Form, HTTPException, UploadFile
-from novel.novel_query import create_novel, create_novel_shorts
+from models import NovelShorts
+from novel.novel_query import create_novel, create_novel_shorts, update_shorts_media
 from novel.novel_schema import (
     NovelCreateWithAdmin,
     NovelResponse,
@@ -109,6 +110,66 @@ async def create_shorts_endpoint(
 
     except Exception as e:
         # 실패 시 업로드된 파일들 삭제
+        if music_path and os.path.exists(UPLOAD_DIR / music_path):
+            os.remove(UPLOAD_DIR / music_path)
+        if image_path and os.path.exists(UPLOAD_DIR / image_path):
+            os.remove(UPLOAD_DIR / image_path)
+        raise e
+
+
+async def process_media_files(shorts: NovelShorts, image_file: Optional[UploadFile], music_file: Optional[UploadFile]):
+    """미디어 파일 처리 및 저장"""
+    music_path = None
+    image_path = None
+    old_paths = []
+
+    if music_file and music_file.filename:
+        music_path = await save_file(music_file, "music")
+        if shorts.music:
+            old_paths.append(shorts.music)
+
+    if image_file and image_file.filename:
+        image_path = await save_file(image_file, "image")
+        if shorts.image:
+            old_paths.append(shorts.image)
+
+    return music_path, image_path, old_paths
+
+
+@app.put("/shorts/{shorts_no}/media", response_model=NovelShortsResponse, description="[관리자] 숏츠 미디어 업데이트")
+async def update_shorts_media_endpoint(
+    shorts_no: int,
+    admin_code: str = Form(...),
+    image_file: Optional[UploadFile] = None,
+    music_file: Optional[UploadFile] = None,
+    db: Session = Depends(get_db),
+):
+    if admin_code != ADMIN_CODE:
+        raise HTTPException(status_code=403, detail="잘못된 관리자 코드입니다")
+
+    try:
+        shorts = db.query(NovelShorts).filter(NovelShorts.no == shorts_no).first()
+        if not shorts:
+            raise HTTPException(status_code=404, detail="존재하지 않는 숏츠입니다")
+
+        music_path, image_path, old_paths = await process_media_files(shorts, image_file, music_file)
+
+        result = update_shorts_media(
+            db,
+            shorts_no,
+            image=image_path if image_path is not None else shorts.image,
+            music=music_path if music_path is not None else shorts.music,
+        )
+
+        if result.success:
+            for old_path in old_paths:
+                if old_path and os.path.exists(UPLOAD_DIR / old_path):
+                    os.remove(UPLOAD_DIR / old_path)
+            return result
+
+        raise HTTPException(status_code=400, detail=result.message)
+
+    except Exception as e:
         if music_path and os.path.exists(UPLOAD_DIR / music_path):
             os.remove(UPLOAD_DIR / music_path)
         if image_path and os.path.exists(UPLOAD_DIR / image_path):
