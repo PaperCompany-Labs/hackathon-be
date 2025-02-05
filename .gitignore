@@ -8,6 +8,7 @@ config/
 !config/config-sample.yaml
 *.db
 uploads/
+tmp/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
