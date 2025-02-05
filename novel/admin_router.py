@@ -34,7 +34,7 @@ IMAGE_DIR.mkdir(parents=True, exist_ok=True)
 async def save_file(file: UploadFile, file_type: str) -> str:
     """파일을 저장하고 저장된 경로를 반환"""
     if not file:
-        return None
+        return ""  # 파일이 없으면 빈 문자열 반환
 
     # 파일 확장자 검증
     allowed_extensions = {"music": {".mp3", ".wav", ".ogg"}, "image": {".jpg", ".jpeg", ".png", ".gif"}}
@@ -87,8 +87,8 @@ async def create_shorts_endpoint(
         raise HTTPException(status_code=403, detail="잘못된 관리자 코드입니다")
 
     # 파일 처리
-    music_path = None
-    image_path = None
+    music_path = ""
+    image_path = ""
     try:
         if music_file:
             music_path = await save_file(music_file, "music")
@@ -108,8 +108,8 @@ async def create_shorts_endpoint(
 
     except Exception as e:
         # 실패 시 업로드된 파일들 삭제
-        if music_path:
-            os.remove(UPLOAD_DIR / Path(music_path))
-        if image_path:
-            os.remove(UPLOAD_DIR / Path(image_path))
+        if music_path and os.path.exists(UPLOAD_DIR / music_path):
+            os.remove(UPLOAD_DIR / music_path)
+        if image_path and os.path.exists(UPLOAD_DIR / image_path):
+            os.remove(UPLOAD_DIR / image_path)
         raise e
