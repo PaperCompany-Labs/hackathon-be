@@ -93,3 +93,45 @@ class NovelCreateWithAdmin(AdminRequest):
 class NovelShortsCreateWithAdmin(AdminRequest):
     shorts_data: NovelShortsCreate
     music_file: Optional[UploadFile] = None  # 음악 파일은 선택사항
+
+
+class CommentResponse(BaseModel):
+    no: int
+    user_no: int
+    content: str
+    created_date: datetime
+    like: int
+    is_del: bool
+    parent_no: Optional[int] = None
+
+
+class NovelShortsWithComments(BaseModel):
+    no: int
+    form_type: int
+    content: str
+    image: str
+    music: str
+    views: int
+    likes: int
+    saves: int
+    comments: List[CommentResponse]
+
+
+class NovelDetailResponse(BaseModel):
+    # 소설 정보
+    no: int
+    title: str
+    author: str
+    description: str
+    genres: List[int]
+    cover_image: str
+    chapters: int
+    views: int
+    recommends: int
+    created_date: datetime
+    last_uploaded_date: Optional[datetime]
+    source_platform_type: int
+    source_url: str
+
+    # 숏츠 목록
+    shorts_list: List[NovelShortsWithComments]

@@ -1,10 +1,13 @@
-from models import Novel, NovelShorts, UserSave
+from models import Comment, Novel, NovelShorts, UserSave
 from novel.novel_schema import (
+    CommentResponse,
     LikeResponse,
     NovelCreate,
+    NovelDetailResponse,
     NovelResponse,
     NovelShortsCreate,
     NovelShortsResponse,
+    NovelShortsWithComments,
     PostResponse,
     SaveResponse,
 )
@@ -293,3 +296,73 @@ def create_novel_shorts(db: Session, shorts_data: NovelShortsCreate) -> NovelSho
         print(f"Error in create_novel_shorts: {str(e)}")
         db.rollback()
         return NovelShortsResponse(success=False, message="숏츠 생성 중 오류가 발생했습니다")
+
+
+def get_novel_detail(db: Session, novel_no: int):
+    try:
+        # 소설 정보 조회
+        novel = db.query(Novel).filter(Novel.no == novel_no).first()
+        if not novel:
+            return {"error": "Novel not found", "msg": "존재하지 않는 소설입니다"}
+
+        # 숏츠 및 댓글 정보 조회
+        shorts_list = (
+            db.query(NovelShorts).filter(NovelShorts.novel_no == novel_no).order_by(NovelShorts.no.desc()).all()
+        )
+
+        # 각 숏츠의 댓글 조회
+        result_shorts = []
+        for shorts in shorts_list:
+            comments = (
+                db.query(Comment)
+                .filter(Comment.novel_shorts_no == shorts.no, Comment.is_del.is_(False))
+                .order_by(Comment.created_date.asc())
+                .all()
+            )
+
+            comments_response = [
+                CommentResponse(
+                    no=comment.no,
+                    user_no=comment.user_no,
+                    content=comment.content,
+                    created_date=comment.created_date,
+                    like=comment.like,
+                    is_del=comment.is_del,
+                    parent_no=comment.parent_no,
+                )
+                for comment in comments
+            ]
+
+            shorts_with_comments = NovelShortsWithComments(
+                no=shorts.no,
+                form_type=shorts.form_type,
+                content=shorts.content,
+                image=shorts.image,
+                music=shorts.music,
+                views=shorts.views,
+                likes=shorts.likes,
+                saves=shorts.saves,
+                comments=comments_response,
+            )
+            result_shorts.append(shorts_with_comments)
+
+        return NovelDetailResponse(
+            no=novel.no,
+            title=novel.title,
+            author=novel.author,
+            description=novel.description,
+            genres=novel.genres,
+            cover_image=novel.cover_image,
+            chapters=novel.chapters,
+            views=novel.views,
+            recommends=novel.recommends,
+            created_date=novel.created_date,
+            last_uploaded_date=novel.last_uploaded_date,
+            source_platform_type=novel.source_platform_type,
+            source_url=novel.source_url,
+            shorts_list=result_shorts,
+        )
+
+    except Exception as e:
+        print(f"Error in get_novel_detail: {str(e)}")
+        return {"error": str(e), "msg": "소설 정보를 가져오는 중 오류가 발생했습니다"}

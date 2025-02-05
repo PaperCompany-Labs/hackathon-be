@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from novel.novel_query import (
     create_novel,
     create_novel_shorts,
+    get_novel_detail,
     get_post,
     get_posts,
     like_novel_shorts,
@@ -15,6 +16,7 @@ from novel.novel_query import (
 from novel.novel_schema import (
     LikeResponse,
     NovelCreate,
+    NovelDetailResponse,
     NovelResponse,
     NovelShortsCreate,
     NovelShortsResponse,
@@ -113,4 +115,12 @@ async def create_shorts_endpoint(
     result = create_novel_shorts(db, shorts_data)
     if not result.success:
         raise HTTPException(status_code=400, detail=result.message)
+    return result
+
+
+@app.get("/novel/{novel_no}", response_model=NovelDetailResponse, description="소설 상세 정보 조회")
+async def read_novel_detail(novel_no: int, db: Session = Depends(get_db)):
+    result = get_novel_detail(db, novel_no)
+    if isinstance(result, dict) and "error" in result:
+        raise HTTPException(status_code=400, detail=result["msg"])
     return result
