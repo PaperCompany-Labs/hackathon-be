@@ -56,7 +56,6 @@ async def signup(new_user: user_schema.NewUserForm, db: Session = Depends(get_db
 
 @app.post(path="/login", response_model=user_schema.Token)
 async def login(
-    response: Response,
     login_form: user_schema.LoginForm,
     db: Session = Depends(get_db),
 ):
@@ -74,15 +73,6 @@ async def login(
         access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
         access_token = create_access_token(
             data={"sub": user.id, "user_no": user.no}, expires_delta=access_token_expires
-        )
-
-        # 쿠키에 토큰 저장
-        response.set_cookie(
-            key="access_token",
-            value=f"Bearer {access_token}",
-            httponly=True,
-            max_age=int(ACCESS_TOKEN_EXPIRE_MINUTES * 60),
-            samesite="lax",
         )
 
         return user_schema.Token(access_token=access_token, token_type="bearer")
@@ -128,7 +118,7 @@ async def logout(request: Request, response: Response):
         )
 
 
-# JWT 토큰 검증을 위한 의존성 함수
+# JWT 토큰 검증을 위한 의존성 함수 수정
 async def get_current_user(request: Request, db: Session = Depends(get_db)) -> Optional[dict]:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -136,12 +126,12 @@ async def get_current_user(request: Request, db: Session = Depends(get_db)) -> O
         headers={"WWW-Authenticate": "Bearer"},
     )
 
-    token = request.cookies.get("access_token")
-    if not token or not token.startswith("Bearer "):
+    auth_header = request.headers.get("Authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
         raise credentials_exception
 
     try:
-        token = token.split("Bearer ")[1]
+        token = auth_header.split("Bearer ")[1]
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         user_id: str = payload.get("sub")
         user_no: int = payload.get("user_no")
