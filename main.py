@@ -1,7 +1,6 @@
 from comment import comment_router
 from database import engine
 from fastapi import FastAPI
-from fastapi.openapi.models import SecuritySchemeType
 from fastapi.openapi.utils import get_openapi
 from fastapi.responses import RedirectResponse
 import models
@@ -13,7 +12,12 @@ from user.user_router import active_router
 
 models.Base.metadata.create_all(bind=engine)
 
-app = FastAPI(swagger_ui_parameters={"syntaxHighlight.theme": "obsidian"})
+app = FastAPI(
+    title="Novel Shorts API",
+    description="Novel Shorts API Documentation",
+    version="1.0.0",
+    swagger_ui_parameters={"syntaxHighlight.theme": "obsidian"},
+)
 
 
 def custom_openapi():
@@ -21,23 +25,22 @@ def custom_openapi():
         return app.openapi_schema
 
     openapi_schema = get_openapi(
-        title="Novel Shorts API",
-        version="1.0.0",
-        description="Novel Shorts API Documentation",
+        title=app.title,
+        version=app.version,
+        description=app.description,
         routes=app.routes,
     )
 
     # JWT Bearer 토큰 인증 설정
-    openapi_schema["components"]["securitySchemes"] = {
-        "Bearer": {
-            "type": SecuritySchemeType.http,
-            "scheme": "bearer",
-            "bearerFormat": "JWT",
+    openapi_schema["components"] = {
+        "securitySchemes": {
+            "Bearer": {
+                "type": "http",
+                "scheme": "bearer",
+                "bearerFormat": "JWT",
+            }
         }
     }
-
-    # 전역 보안 요구사항 제거
-    # openapi_schema["security"] = [{"Bearer": []}]  # 이 부분 제거
 
     app.openapi_schema = openapi_schema
     return app.openapi_schema
