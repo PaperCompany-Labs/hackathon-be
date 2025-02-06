@@ -1,7 +1,7 @@
 from comment import comment_router
 from database import engine
 from fastapi import FastAPI
-from fastapi.openapi.models import SecuritySchemeIn, SecuritySchemeType
+from fastapi.openapi.models import SecuritySchemeType
 from fastapi.openapi.utils import get_openapi
 from fastapi.responses import RedirectResponse
 import models
@@ -33,12 +33,11 @@ def custom_openapi():
             "type": SecuritySchemeType.http,
             "scheme": "bearer",
             "bearerFormat": "JWT",
-            "in": SecuritySchemeIn.header,
         }
     }
 
-    # 모든 엔드포인트에 보안 요구사항 적용
-    openapi_schema["security"] = [{"Bearer": []}]
+    # 전역 보안 요구사항 제거
+    # openapi_schema["security"] = [{"Bearer": []}]  # 이 부분 제거
 
     app.openapi_schema = openapi_schema
     return app.openapi_schema
