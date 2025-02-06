@@ -33,8 +33,11 @@ class NewUserForm(BaseModel):
 
 
 class LoginForm(BaseModel):
-    id: str
-    password: str
+    id: str = Field(..., description="사용자 아이디")
+    password: str = Field(..., description="비밀번호")
+
+    class Config:
+        json_schema_extra = {"example": {"id": "testuser", "password": "Test1234!"}}
 
 
 class Token(BaseModel):

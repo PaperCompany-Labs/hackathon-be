@@ -58,21 +58,29 @@ async def signup(new_user: user_schema.NewUserForm, db: Session = Depends(get_db
         )
 
 
-@app.post(path="/login", response_model=user_schema.Token)
+@app.post(
+    path="/login",
+    response_model=user_schema.Token,
+    description="로그인",
+)
 async def login(
     login_form: user_schema.LoginForm,
     db: Session = Depends(get_db),
 ):
-    # 회원 존재 여부 확인
-    user = user_query.get_user(db, login_form.id)
-    if not user:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="아이디 또는 비밀번호가 일치하지 않습니다")
-
-    # 비밀번호 검증
-    if not user_query.verify_password(login_form.password, user.password):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="아이디 또는 비밀번호가 일치하지 않습니다")
-
     try:
+        # 회원 존재 여부 확인
+        user = user_query.get_user(db, login_form.id)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="아이디 또는 비밀번호가 일치하지 않습니다"
+            )
+
+        # 비밀번호 검증
+        if not user_query.verify_password(login_form.password, user.password):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="아이디 또는 비밀번호가 일치하지 않습니다"
+            )
+
         # 액세스 토큰 생성
         access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
         access_token = create_access_token(
@@ -80,7 +88,11 @@ async def login(
         )
 
         return user_schema.Token(access_token=access_token, token_type="bearer")
+    except ValidationError as e:
+        print(f"Validation error: {str(e)}")  # 에러 로깅
+        raise HTTPException(status_code=422, detail=str(e))
     except Exception as e:
+        print(f"Login error: {str(e)}")  # 에러 로깅
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"로그인 처리 중 오류가 발생했습니다: {str(e)}"
         )
