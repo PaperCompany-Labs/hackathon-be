@@ -19,7 +19,7 @@ from sqlalchemy import update
 from sqlalchemy.orm import Session
 
 
-def get_post(post_no: int, db: Session):
+def get_post(post_no: int, db: Session) -> PostResponse:
     if not isinstance(post_no, int) or post_no <= 0:
         return {"error": "Invalid post_no", "msg": "올바르지 않은 게시글 번호입니다."}
 
@@ -34,86 +34,37 @@ def get_post(post_no: int, db: Session):
 
         # 게시글 조회
         post = (
-            db.query(
-                NovelShorts.no,
-                Novel.title,
-                Novel.author,
-                Novel.description,
-                Novel.genres,
-                Novel.cover_image,
-                Novel.chapters,
-                Novel.views,
-                Novel.recommends,
-                Novel.created_date,
-                Novel.last_uploaded_date,
-                Novel.source_type,
-                Novel.source_url,
-                NovelShorts.likes,
-                NovelShorts.saves,
-                NovelShorts.comments,
-                NovelShorts.content,
-                NovelShorts.image,
-                NovelShorts.music,
-                NovelShorts.views.label("shorts_views"),
-            )
+            db.query(NovelShorts, Novel)
             .join(Novel, Novel.no == NovelShorts.novel_no)
             .filter(NovelShorts.no == post_no)
             .first()
         )
 
         if not post:
-            return {"error": "Post not found", "msg": "존재하지 않는 번호입니다."}
+            return {"error": "Post not found", "msg": "존재하지 않는 숏츠입니다"}
 
         return PostResponse(
-            no=post.no,
-            title=post.title,
-            author=post.author,
-            description=post.description,
-            genres=post.genres,
-            cover_image=post.cover_image,
-            chapters=post.chapters,
-            views=post.shorts_views,
-            recommends=post.recommends,
-            created_date=post.created_date,
-            last_uploaded_date=post.last_uploaded_date,
-            source_platform=str(post.source_type),
-            source_url=post.source_url,
-            likes=post.likes,
-            saves=post.saves,
-            comments=post.comments,
-            content=post.content,
-            image=post.image,
-            music=post.music,
+            no=post.NovelShorts.no,
+            form_type=post.NovelShorts.form_type,
+            content=post.NovelShorts.content,
+            music=post.NovelShorts.music,
+            views=post.NovelShorts.views,
+            likes=post.NovelShorts.likes,
+            saves=post.NovelShorts.saves,
+            comments=post.NovelShorts.comments,
+            title=post.Novel.title,
+            author=post.Novel.author,
+            source_url=post.Novel.source_url,
         )
     except Exception as e:
         db.rollback()  # 에러 발생 시 롤백
         return {"error": str(e), "msg": "게시글을 가져오는 중 오류가 발생했습니다."}
 
 
-def get_posts(db: Session, limit: int = 10, offset: int = 0):
+def get_posts(db: Session, limit: int, offset: int) -> List[PostResponse]:
     try:
         posts = (
-            db.query(
-                NovelShorts.no,
-                Novel.title,
-                Novel.author,
-                Novel.description,
-                Novel.genres,
-                Novel.cover_image,
-                Novel.chapters,
-                Novel.views,
-                Novel.recommends,
-                Novel.created_date,
-                Novel.last_uploaded_date,
-                Novel.source_type,
-                Novel.source_url,
-                NovelShorts.likes,
-                NovelShorts.saves,
-                NovelShorts.comments,
-                NovelShorts.content,
-                NovelShorts.image,
-                NovelShorts.music,
-            )
+            db.query(NovelShorts, Novel)
             .join(Novel, Novel.no == NovelShorts.novel_no)
             .order_by(NovelShorts.no.desc())
             .offset(offset)
@@ -121,43 +72,25 @@ def get_posts(db: Session, limit: int = 10, offset: int = 0):
             .all()
         )
 
-        if not posts:
-            return []
-
-        result_list = []
-        for post in posts:
-            try:
-                post_dict = {
-                    "no": post.no,
-                    "title": post.title,
-                    "author": post.author,
-                    "description": post.description,
-                    "genres": post.genres,
-                    "cover_image": post.cover_image,
-                    "chapters": post.chapters,
-                    "views": post.views,
-                    "recommends": post.recommends,
-                    "created_date": post.created_date,
-                    "last_uploaded_date": post.last_uploaded_date,
-                    "source_platform": str(post.source_type),
-                    "source_url": post.source_url,
-                    "likes": post.likes,
-                    "saves": post.saves,
-                    "comments": post.comments,
-                    "content": post.content,
-                    "image": post.image,
-                    "music": post.music,
-                }
-                result_list.append(post_dict)
-            except Exception as e:
-                print(f"Error converting post {post.no}: {str(e)}")
-                continue
-
-        return result_list
-
+        return [
+            PostResponse(
+                no=post.NovelShorts.no,
+                form_type=post.NovelShorts.form_type,
+                content=post.NovelShorts.content,
+                music=post.NovelShorts.music,
+                views=post.NovelShorts.views,
+                likes=post.NovelShorts.likes,
+                saves=post.NovelShorts.saves,
+                comments=post.NovelShorts.comments,
+                title=post.Novel.title,
+                author=post.Novel.author,
+                source_url=post.Novel.source_url,
+            )
+            for post in posts
+        ]
     except Exception as e:
         print(f"Error in get_posts: {str(e)}")
-        return {"error": str(e), "msg": "게시글 목록을 가져오는 중 오류가 발생했습니다."}
+        return {"error": str(e), "msg": "숏츠 목록을 가져오는 중 오류가 발생했습니다"}
 
 
 def like_novel_shorts(db: Session, user_no: int, shorts_no: int) -> LikeResponse:
@@ -497,3 +430,39 @@ def get_novel_shorts_csv(db: Session) -> Tuple[str, List[dict]]:
     except Exception as e:
         print(f"Error in get_novel_shorts_csv: {str(e)}")
         return "", []
+
+
+def update_shorts_media_by_novel_id(
+    db: Session,
+    novel_id: int,
+    form_type: Optional[int] = None,
+    image_path: Optional[str] = None,
+    music_path: Optional[str] = None,
+) -> NovelShortsResponse:
+    try:
+        # source_id로 novel_no 찾기
+        novel_no = get_novel_no_by_source_id(db, novel_id)
+        if not novel_no:
+            return NovelShortsResponse(success=False, message="해당하는 소설을 찾을 수 없습니다")
+
+        # novel_no로 모든 shorts 찾기
+        shorts_list = db.query(NovelShorts).filter(NovelShorts.novel_no == novel_no).all()
+        if not shorts_list:
+            return NovelShortsResponse(success=False, message="해당하는 숏츠가 없습니다")
+
+        # 모든 shorts 업데이트
+        for shorts in shorts_list:
+            if form_type is not None:
+                shorts.form_type = form_type
+            if image_path:
+                shorts.image = image_path
+            if music_path:
+                shorts.music = music_path
+
+        db.commit()
+        return NovelShortsResponse(success=True, message="숏츠가 업데이트되었습니다")
+
+    except Exception as e:
+        db.rollback()
+        print(f"Error updating shorts media: {str(e)}")
+        return NovelShortsResponse(success=False, message="숏츠 업데이트 중 오류가 발생했습니다")

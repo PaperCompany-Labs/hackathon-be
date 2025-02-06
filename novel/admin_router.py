@@ -13,13 +13,14 @@ from novel.novel_query import (
     create_novel_shorts,
     get_novel_detail,
     get_novel_shorts_csv,
-    update_shorts_media,
+    update_shorts_media_by_novel_id,
 )
 from novel.novel_schema import (
     NovelCreateWithAdmin,
     NovelDetailResponse,
     NovelResponse,
     NovelShortsCreateWithAdmin,
+    NovelShortsMediaUpdateWithAdmin,
     NovelShortsResponse,
 )
 from sqlalchemy.orm import Session
@@ -127,45 +128,36 @@ async def process_media_files(shorts: NovelShorts, image_file: Optional[UploadFi
     return music_path, image_path, old_paths
 
 
-@app.put("/shorts/{shorts_no}/media", response_model=NovelShortsResponse, description="[관리자] 숏츠 미디어 업데이트")
-async def update_shorts_media_endpoint(
-    shorts_no: int,
-    admin_code: str = Form(...),
-    image_file: Optional[UploadFile] = None,
-    music_file: Optional[UploadFile] = None,
-    db: Session = Depends(get_db),
-):
-    if admin_code != ADMIN_CODE:
-        raise HTTPException(status_code=403, detail="잘못된 관리자 코드입니다")
+@app.put("/shorts/media", response_model=NovelShortsResponse, description="[관리자] 숏츠 미디어 업데이트")
+async def update_shorts_media_endpoint(shorts_data: NovelShortsMediaUpdateWithAdmin, db: Session = Depends(get_db)):
+    # 관리자 코드 검증
+    if not verify_admin_code(shorts_data.admin_code):
+        raise HTTPException(status_code=403, detail="관리자 권한이 없습니다")
 
-    try:
-        shorts = db.query(NovelShorts).filter(NovelShorts.no == shorts_no).first()
-        if not shorts:
-            raise HTTPException(status_code=404, detail="존재하지 않는 숏츠입니다")
+    # 파일 처리
+    music_path = None
+    image_path = None
+    if shorts_data.music_file:
+        try:
+            music_path = await save_file(shorts_data.music_file, "music")
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"음악 파일 업로드 중 오류 발생: {str(e)}")
 
-        music_path, image_path, old_paths = await process_media_files(shorts, image_file, music_file)
+    if shorts_data.image_file:
+        try:
+            image_path = await save_file(shorts_data.image_file, "image")
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"이미지 파일 업로드 중 오류 발생: {str(e)}")
 
-        result = update_shorts_media(
-            db,
-            shorts_no,
-            image=image_path if image_path is not None else shorts.image,
-            music=music_path if music_path is not None else shorts.music,
-        )
+    # 숏츠 업데이트
+    result = update_shorts_media_by_novel_id(
+        db, shorts_data.shorts_data.novel_id, shorts_data.shorts_data.form_type, image_path, music_path
+    )
 
-        if result.success:
-            for old_path in old_paths:
-                if old_path and os.path.exists(UPLOAD_DIR / old_path):
-                    os.remove(UPLOAD_DIR / old_path)
-            return result
-
+    if not result.success:
         raise HTTPException(status_code=400, detail=result.message)
 
-    except Exception as e:
-        if music_path and os.path.exists(UPLOAD_DIR / music_path):
-            os.remove(UPLOAD_DIR / music_path)
-        if image_path and os.path.exists(UPLOAD_DIR / image_path):
-            os.remove(UPLOAD_DIR / image_path)
-        raise e
+    return result
 
 
 @app.get("/novel/{novel_no}", response_model=NovelDetailResponse, description="[관리자] 소설 상세 정보 조회")
