@@ -1,7 +1,6 @@
 from comment import comment_router
 from database import engine
 from fastapi import FastAPI
-from fastapi.openapi.utils import get_openapi
 from fastapi.responses import RedirectResponse
 import models
 from novel import admin_router, novel_router
@@ -13,31 +12,6 @@ from user.user_router import active_router
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(swagger_ui_parameters={"syntaxHighlight.theme": "obsidian"})
-
-
-def custom_openapi():
-    openapi_schema = get_openapi(
-        title="Novel Shorts API",
-        version="1.0.0",
-        description="Novel Shorts API Documentation",
-        routes=app.routes,
-    )
-
-    # JWT Bearer 토큰 인증 설정
-    openapi_schema["components"] = {
-        "securitySchemes": {
-            "Bearer": {
-                "type": "http",
-                "scheme": "bearer",
-                "bearerFormat": "JWT",
-            }
-        }
-    }
-
-    return openapi_schema
-
-
-app.openapi = custom_openapi
 
 app.add_middleware(
     CORSMiddleware,

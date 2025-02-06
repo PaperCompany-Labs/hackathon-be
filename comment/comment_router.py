@@ -1,3 +1,4 @@
+from auth.jwt_bearer import JWTBearer
 from comment.comment_query import (
     create_comment,
     delete_comment,
@@ -10,10 +11,10 @@ from comment.comment_schema import CommentActionResponse, CommentCreate, Comment
 from database import get_db
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from user.user_router import get_current_user
 
 
 app = APIRouter(prefix="/shorts")
+jwt_bearer = JWTBearer()
 
 
 @app.get("/{shorts_no}/comments", response_model=CommentListResponse)
@@ -24,71 +25,52 @@ async def get_shorts_comments(shorts_no: int, db: Session = Depends(get_db)):
     return result
 
 
-@app.post("/comment", response_model=CommentActionResponse, security=[{"Bearer": []}])
+@app.post("/comment", response_model=CommentActionResponse)
 async def create_shorts_comment(
-    comment_data: CommentCreate, current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)
+    comment_data: CommentCreate, current_user: dict = Depends(jwt_bearer), db: Session = Depends(get_db)
 ):
-    if not current_user:
-        raise HTTPException(status_code=401, detail="로그인이 필요한 서비스입니다")
-
-    # user_no를 토큰에서 가져온 값으로 설정
     comment_data.user_no = current_user["user_no"]
-
     result = create_comment(db, comment_data)
     if not result.success:
         raise HTTPException(status_code=400, detail=result.message)
     return result
 
 
-@app.put("/comment/{comment_no}", response_model=CommentActionResponse, security=[{"Bearer": []}])
+@app.put("/comment/{comment_no}", response_model=CommentActionResponse)
 async def update_shorts_comment(
     comment_no: int,
     update_data: CommentUpdate,
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(jwt_bearer),
     db: Session = Depends(get_db),
 ):
-    if not current_user:
-        raise HTTPException(status_code=401, detail="로그인이 필요한 서비스입니다")
-
     result = update_comment(db, comment_no, current_user["user_no"], update_data)
     if not result.success:
         raise HTTPException(status_code=400, detail=result.message)
     return result
 
 
-@app.delete("/comment/{comment_no}", response_model=CommentActionResponse, security=[{"Bearer": []}])
+@app.delete("/comment/{comment_no}", response_model=CommentActionResponse)
 async def delete_shorts_comment(
-    comment_no: int, current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)
+    comment_no: int, current_user: dict = Depends(jwt_bearer), db: Session = Depends(get_db)
 ):
-    if not current_user:
-        raise HTTPException(status_code=401, detail="로그인이 필요한 서비스입니다")
-
     result = delete_comment(db, comment_no, current_user["user_no"])
     if not result.success:
         raise HTTPException(status_code=400, detail=result.message)
     return result
 
 
-@app.post("/comment/{comment_no}/like", response_model=CommentActionResponse, security=[{"Bearer": []}])
-async def like_shorts_comment(
-    comment_no: int, current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)
-):
-    if not current_user:
-        raise HTTPException(status_code=401, detail="로그인이 필요한 서비스입니다")
-
+@app.post("/comment/{comment_no}/like", response_model=CommentActionResponse)
+async def like_shorts_comment(comment_no: int, current_user: dict = Depends(jwt_bearer), db: Session = Depends(get_db)):
     result = like_comment(db, current_user["user_no"], comment_no)
     if not result.success:
         raise HTTPException(status_code=400, detail=result.message)
     return result
 
 
-@app.delete("/comment/{comment_no}/like", response_model=CommentActionResponse, security=[{"Bearer": []}])
+@app.delete("/comment/{comment_no}/like", response_model=CommentActionResponse)
 async def dislike_shorts_comment(
-    comment_no: int, current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)
+    comment_no: int, current_user: dict = Depends(jwt_bearer), db: Session = Depends(get_db)
 ):
-    if not current_user:
-        raise HTTPException(status_code=401, detail="로그인이 필요한 서비스입니다")
-
     result = dislike_comment(db, current_user["user_no"], comment_no)
     if not result.success:
         raise HTTPException(status_code=400, detail=result.message)

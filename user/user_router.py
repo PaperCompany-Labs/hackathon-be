@@ -2,10 +2,11 @@ from datetime import datetime, timedelta
 import os
 from typing import Optional
 
+from auth.jwt_bearer import JWTBearer
 from database import get_db
 from dotenv import load_dotenv
-from fastapi import APIRouter, Depends, HTTPException, Request, status
-from jose import JWTError, jwt
+from fastapi import APIRouter, Depends, HTTPException, status
+from jose import jwt
 from pydantic import ValidationError
 from sqlalchemy.orm import Session
 from starlette.responses import JSONResponse
@@ -34,29 +35,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     return encoded_jwt
 
 
-async def get_current_user(request: Request, db: Session = Depends(get_db)) -> Optional[dict]:
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="로그인이 필요합니다",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-
-    auth_header = request.headers.get("Authorization")
-    if not auth_header or not auth_header.startswith("Bearer "):
-        raise credentials_exception
-
-    try:
-        token = auth_header.split("Bearer ")[1]
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        user_id: str = payload.get("sub")
-        user_no: int = payload.get("user_no")
-
-        if user_id is None:
-            raise credentials_exception
-
-        return {"user_id": user_id, "user_no": user_no}
-    except JWTError:
-        raise credentials_exception
+jwt_bearer = JWTBearer()
 
 
 @app.post(path="/signup")
@@ -107,28 +86,21 @@ async def login(
         )
 
 
-@app.post(path="/logout", security=[{"Bearer": []}])
-async def logout(request: Request, current_user: dict = Depends(get_current_user)):
+@app.post(path="/logout")
+async def logout(current_user: dict = Depends(jwt_bearer)):
     try:
         return JSONResponse(status_code=status.HTTP_200_OK, content={"message": "로그아웃되었습니다"})
-
-    except HTTPException as he:
-        raise he
     except Exception:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="로그아웃 처리 중 오류가 발생했습니다"
         )
 
 
-@active_router.post("/log", response_model=UserActiveResponse, security=[{"Bearer": []}])
+@active_router.post("/log", response_model=UserActiveResponse)
 async def log_user_activity(
-    active_data: UserActiveCreate, current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)
+    active_data: UserActiveCreate, current_user: dict = Depends(jwt_bearer), db: Session = Depends(get_db)
 ):
-    if not current_user:
-        raise HTTPException(status_code=401, detail="로그인이 필요한 서비스입니다")
-
     result = create_active_log(db, current_user["user_no"], active_data)
     if not result.success:
         raise HTTPException(status_code=400, detail=result.message)
-
     return result

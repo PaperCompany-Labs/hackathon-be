@@ -1,5 +1,6 @@
 from typing import List
 
+from auth.jwt_bearer import JWTBearer
 from database import get_db
 from fastapi import APIRouter, Depends, HTTPException, Query
 from novel.novel_query import (
@@ -16,10 +17,11 @@ from novel.novel_schema import (
     SaveResponse,
 )
 from sqlalchemy.orm import Session
-from user.user_router import get_current_user
 
 
 app = APIRouter(prefix="/shorts")
+
+jwt_bearer = JWTBearer()
 
 
 @app.get(path="", response_model=List[PostResponse], description="숏츠 - 목록 조회")
@@ -40,46 +42,32 @@ async def read_post(post_no: int, db: Session = Depends(get_db)):
     return result
 
 
-@app.post("/{shorts_no}/like", response_model=LikeResponse, description="숏츠 - 좋아요", security=[{"Bearer": []}])
-async def like_shorts(shorts_no: int, current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
-    if not current_user:
-        raise HTTPException(status_code=401, detail="로그인이 필요한 서비스입니다")
-
+@app.post("/{shorts_no}/like", response_model=LikeResponse, description="숏츠 - 좋아요")
+async def like_shorts(shorts_no: int, current_user: dict = Depends(jwt_bearer), db: Session = Depends(get_db)):
     result = like_novel_shorts(db, current_user["user_no"], shorts_no)
     if not result.success:
         raise HTTPException(status_code=400, detail=result.message)
     return result
 
 
-@app.delete(
-    "/{shorts_no}/like", response_model=LikeResponse, description="숏츠 - 좋아요 취소", security=[{"Bearer": []}]
-)
-async def unlike_shorts(shorts_no: int, current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
-    if not current_user:
-        raise HTTPException(status_code=401, detail="로그인이 필요한 서비스입니다")
-
+@app.delete("/{shorts_no}/like", response_model=LikeResponse, description="숏츠 - 좋아요 취소")
+async def unlike_shorts(shorts_no: int, current_user: dict = Depends(jwt_bearer), db: Session = Depends(get_db)):
     result = unlike_novel_shorts(db, current_user["user_no"], shorts_no)
     if not result.success:
         raise HTTPException(status_code=400, detail=result.message)
     return result
 
 
-@app.post("/{shorts_no}/save", response_model=SaveResponse, description="숏츠 - 저장", security=[{"Bearer": []}])
-async def save_shorts(shorts_no: int, current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
-    if not current_user:
-        raise HTTPException(status_code=401, detail="로그인이 필요한 서비스입니다")
-
+@app.post("/{shorts_no}/save", response_model=SaveResponse, description="숏츠 - 저장")
+async def save_shorts(shorts_no: int, current_user: dict = Depends(jwt_bearer), db: Session = Depends(get_db)):
     result = save_novel_shorts(db, current_user["user_no"], shorts_no)
     if not result.success:
         raise HTTPException(status_code=400, detail=result.message)
     return result
 
 
-@app.delete("/{shorts_no}/save", response_model=SaveResponse, description="숏츠 - 저장 취소", security=[{"Bearer": []}])
-async def unsave_shorts(shorts_no: int, current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
-    if not current_user:
-        raise HTTPException(status_code=401, detail="로그인이 필요한 서비스입니다")
-
+@app.delete("/{shorts_no}/save", response_model=SaveResponse, description="숏츠 - 저장 취소")
+async def unsave_shorts(shorts_no: int, current_user: dict = Depends(jwt_bearer), db: Session = Depends(get_db)):
     result = unsave_novel_shorts(db, current_user["user_no"], shorts_no)
     if not result.success:
         raise HTTPException(status_code=400, detail=result.message)
