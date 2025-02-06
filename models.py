@@ -88,13 +88,15 @@ class Novel(Base):
     no = Column(Integer, primary_key=True, autoincrement=True)
     source_platform_type = Column(SMALLINT)
     source_id = Column(Integer)
-    source_type = Column(SMALLINT)
+    # source_type = Column(SMALLINT)
     source_url = Column(Text)
     title = Column(VARCHAR(50))
     author = Column(VARCHAR(50))
-    description = Column(Text)
-    genres = Column(ARRAY(SMALLINT))
-    cover_image = Column(Text)
+    description = Column(Text, nullable=True)
+    genres = Column(ARRAY(SMALLINT), nullable=True)
+    subtitle = Column(VARCHAR(100))
+    content = Column(Text)
+    cover_image = Column(Text, nullable=True)
     chapters = Column(Integer)  # 연재수
     views = Column(Integer)  # 조회수
     recommends = Column(Integer)  # 추천수
