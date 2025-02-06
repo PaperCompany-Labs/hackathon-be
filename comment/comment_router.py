@@ -24,7 +24,7 @@ async def get_shorts_comments(shorts_no: int, db: Session = Depends(get_db)):
     return result
 
 
-@app.post("/comment", response_model=CommentActionResponse)
+@app.post("/comment", response_model=CommentActionResponse, security=[{"Bearer": []}])
 async def create_shorts_comment(
     comment_data: CommentCreate, current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)
 ):
@@ -40,7 +40,7 @@ async def create_shorts_comment(
     return result
 
 
-@app.put("/comment/{comment_no}", response_model=CommentActionResponse)
+@app.put("/comment/{comment_no}", response_model=CommentActionResponse, security=[{"Bearer": []}])
 async def update_shorts_comment(
     comment_no: int,
     update_data: CommentUpdate,
@@ -56,7 +56,7 @@ async def update_shorts_comment(
     return result
 
 
-@app.delete("/comment/{comment_no}", response_model=CommentActionResponse)
+@app.delete("/comment/{comment_no}", response_model=CommentActionResponse, security=[{"Bearer": []}])
 async def delete_shorts_comment(
     comment_no: int, current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)
 ):
@@ -69,7 +69,7 @@ async def delete_shorts_comment(
     return result
 
 
-@app.post("/comment/{comment_no}/like", response_model=CommentActionResponse)
+@app.post("/comment/{comment_no}/like", response_model=CommentActionResponse, security=[{"Bearer": []}])
 async def like_shorts_comment(
     comment_no: int, current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)
 ):
@@ -82,7 +82,7 @@ async def like_shorts_comment(
     return result
 
 
-@app.delete("/comment/{comment_no}/like", response_model=CommentActionResponse)
+@app.delete("/comment/{comment_no}/like", response_model=CommentActionResponse, security=[{"Bearer": []}])
 async def dislike_shorts_comment(
     comment_no: int, current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)
 ):

@@ -82,7 +82,7 @@ async def login(
         )
 
 
-@app.post(path="/logout")
+@app.post(path="/logout", security=[{"Bearer": []}])
 async def logout(request: Request, response: Response):
     try:
         # 토큰 존재 여부 확인
@@ -144,7 +144,7 @@ async def get_current_user(request: Request, db: Session = Depends(get_db)) -> O
         raise credentials_exception
 
 
-@active_router.post("/log", response_model=UserActiveResponse)
+@active_router.post("/log", response_model=UserActiveResponse, security=[{"Bearer": []}])
 async def log_user_activity(
     active_data: UserActiveCreate, current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)
 ):

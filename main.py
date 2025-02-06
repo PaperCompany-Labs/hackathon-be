@@ -32,15 +32,20 @@ def custom_openapi():
     )
 
     # JWT Bearer 토큰 인증 설정
-    openapi_schema["components"] = {
-        "securitySchemes": {
-            "Bearer": {
-                "type": "http",
-                "scheme": "bearer",
-                "bearerFormat": "JWT",
-            }
+    if "components" not in openapi_schema:
+        openapi_schema["components"] = {}
+
+    openapi_schema["components"]["securitySchemes"] = {
+        "Bearer": {
+            "type": "http",
+            "scheme": "bearer",
+            "bearerFormat": "JWT",
         }
     }
+
+    # 기존 schemas 유지
+    if "schemas" not in openapi_schema["components"]:
+        openapi_schema["components"]["schemas"] = {}
 
     app.openapi_schema = openapi_schema
     return app.openapi_schema
