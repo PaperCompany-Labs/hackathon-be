@@ -63,11 +63,16 @@ class NovelCreate(BaseModel):
 
 
 class NovelShortsCreate(BaseModel):
-    novel_no: int
-    form_type: int = 1  # 기본값 TEXT
+    novel_id: int  # source_id로 사용될 필드
     content: str
-    image: Optional[str] = None
-    music: Optional[str] = None
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "novel_id": 123,  # 원작 소설의 source_id
+                "content": "숏츠 내용...",
+            }
+        }
 
 
 class NovelResponse(BaseModel):
@@ -93,6 +98,15 @@ class NovelCreateWithAdmin(AdminRequest):
 class NovelShortsCreateWithAdmin(AdminRequest):
     shorts_data: NovelShortsCreate
     music_file: Optional[UploadFile] = None  # 음악 파일은 선택사항
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "admin_code": "your-admin-code",
+                "shorts_data": {"novel_id": 123, "content": "숏츠 내용..."},
+                "music_file": None,
+            }
+        }
 
 
 class CommentResponse(BaseModel):
