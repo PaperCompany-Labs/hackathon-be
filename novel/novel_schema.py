@@ -7,30 +7,33 @@ from pydantic import BaseModel
 
 class PostResponse(BaseModel):
     no: int
-
-    # 소설 정보
-    title: str
-    author: str
-    description: str
-    genres: Optional[List[int]] = None
-    cover_image: Optional[str] = None
-    chapters: int  # 연재수
-    views: int  # 조회수
-    recommends: int  # 추천수
-    created_date: datetime
-    last_uploaded_date: Optional[datetime] = None
-    source_platform: str
-    source_url: str
-
-    # 숏츠 반응
+    form_type: int
+    content: str
+    music: Optional[str] = None
+    views: int
     likes: int
     saves: int
     comments: int
+    title: str  # 소설 제목
+    author: str  # 작가
+    source_url: str  # 원작 URL
 
-    # 숏츠 컨텐츠
-    content: str
-    image: str
-    music: str
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "no": 1,
+                "form_type": 1,
+                "content": "숏츠 내용...",
+                "music": "uploads/music/example.mp3",
+                "views": 100,
+                "likes": 50,
+                "saves": 30,
+                "comments": 20,
+                "title": "소설 제목",
+                "author": "작가명",
+                "source_url": "https://example.com/novel/123",
+            }
+        }
 
 
 class LikeResponse(BaseModel):
@@ -149,3 +152,22 @@ class NovelDetailResponse(BaseModel):
 
     # 숏츠 목록
     shorts_list: List[NovelShortsWithComments]
+
+
+class NovelShortsMediaUpdate(BaseModel):
+    novel_id: int  # source_id로 사용될 필드
+    form_type: Optional[int] = None
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "novel_id": 123,  # 원작 소설의 source_id
+                "form_type": 1,  # 선택사항
+            }
+        }
+
+
+class NovelShortsMediaUpdateWithAdmin(AdminRequest):
+    shorts_data: NovelShortsMediaUpdate
+    image_file: Optional[UploadFile] = None
+    music_file: Optional[UploadFile] = None
