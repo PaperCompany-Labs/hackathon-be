@@ -12,43 +12,29 @@ from user.user_router import active_router
 
 models.Base.metadata.create_all(bind=engine)
 
-app = FastAPI(
-    title="Novel Shorts API",
-    description="Novel Shorts API Documentation",
-    version="1.0.0",
-    swagger_ui_parameters={"syntaxHighlight.theme": "obsidian"},
-)
+app = FastAPI(swagger_ui_parameters={"syntaxHighlight.theme": "obsidian"})
 
 
 def custom_openapi():
-    if app.openapi_schema:
-        return app.openapi_schema
-
     openapi_schema = get_openapi(
-        title=app.title,
-        version=app.version,
-        description=app.description,
+        title="Novel Shorts API",
+        version="1.0.0",
+        description="Novel Shorts API Documentation",
         routes=app.routes,
     )
 
     # JWT Bearer 토큰 인증 설정
-    if "components" not in openapi_schema:
-        openapi_schema["components"] = {}
-
-    openapi_schema["components"]["securitySchemes"] = {
-        "Bearer": {
-            "type": "http",
-            "scheme": "bearer",
-            "bearerFormat": "JWT",
+    openapi_schema["components"] = {
+        "securitySchemes": {
+            "Bearer": {
+                "type": "http",
+                "scheme": "bearer",
+                "bearerFormat": "JWT",
+            }
         }
     }
 
-    # 기존 schemas 유지
-    if "schemas" not in openapi_schema["components"]:
-        openapi_schema["components"]["schemas"] = {}
-
-    app.openapi_schema = openapi_schema
-    return app.openapi_schema
+    return openapi_schema
 
 
 app.openapi = custom_openapi

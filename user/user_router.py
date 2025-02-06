@@ -4,7 +4,7 @@ from typing import Optional
 
 from database import get_db
 from dotenv import load_dotenv
-from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from jose import JWTError, jwt
 from pydantic import ValidationError
 from sqlalchemy.orm import Session
@@ -32,6 +32,31 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
+
+
+async def get_current_user(request: Request, db: Session = Depends(get_db)) -> Optional[dict]:
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="로그인이 필요합니다",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
+    auth_header = request.headers.get("Authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        raise credentials_exception
+
+    try:
+        token = auth_header.split("Bearer ")[1]
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id: str = payload.get("sub")
+        user_no: int = payload.get("user_no")
+
+        if user_id is None:
+            raise credentials_exception
+
+        return {"user_id": user_id, "user_no": user_no}
+    except JWTError:
+        raise credentials_exception
 
 
 @app.post(path="/signup")
@@ -83,31 +108,8 @@ async def login(
 
 
 @app.post(path="/logout", security=[{"Bearer": []}])
-async def logout(request: Request, response: Response):
+async def logout(request: Request, current_user: dict = Depends(get_current_user)):
     try:
-        # 토큰 존재 여부 확인
-        token = request.cookies.get("access_token")
-        if not token:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="이미 로그아웃된 상태입니다")
-
-        # 토큰 형식 검증
-        if not token.startswith("Bearer "):
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="잘못된 토큰 형식입니다")
-
-        try:
-            # 토큰 유효성 검증
-            token = token.split("Bearer ")[1]
-            payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-            if not payload:
-                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="유효하지 않은 토큰입니다")
-        except JWTError:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED, detail="만료되었거나 유효하지 않은 토큰입니다"
-            )
-
-        # 쿠키 삭제
-        response.delete_cookie(key="access_token", httponly=True, samesite="lax")
-
         return JSONResponse(status_code=status.HTTP_200_OK, content={"message": "로그아웃되었습니다"})
 
     except HTTPException as he:
@@ -116,32 +118,6 @@ async def logout(request: Request, response: Response):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="로그아웃 처리 중 오류가 발생했습니다"
         )
-
-
-# JWT 토큰 검증을 위한 의존성 함수 수정
-async def get_current_user(request: Request, db: Session = Depends(get_db)) -> Optional[dict]:
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="로그인이 필요합니다",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-
-    auth_header = request.headers.get("Authorization")
-    if not auth_header or not auth_header.startswith("Bearer "):
-        raise credentials_exception
-
-    try:
-        token = auth_header.split("Bearer ")[1]
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        user_id: str = payload.get("sub")
-        user_no: int = payload.get("user_no")
-
-        if user_id is None:
-            raise credentials_exception
-
-        return {"user_id": user_id, "user_no": user_no}
-    except JWTError:
-        raise credentials_exception
 
 
 @active_router.post("/log", response_model=UserActiveResponse, security=[{"Bearer": []}])
