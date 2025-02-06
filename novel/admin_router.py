@@ -19,7 +19,7 @@ from novel.novel_schema import (
     NovelCreateWithAdmin,
     NovelDetailResponse,
     NovelResponse,
-    NovelShortsCreate,
+    NovelShortsCreateWithAdmin,
     NovelShortsResponse,
 )
 from sqlalchemy.orm import Session
@@ -82,47 +82,30 @@ async def create_novel_endpoint(request: NovelCreateWithAdmin, db: Session = Dep
     return result
 
 
+def verify_admin_code(code: str) -> bool:
+    return code == ADMIN_CODE
+
+
 @app.post("/shorts", response_model=NovelShortsResponse, description="[관리자] 숏츠 생성")
-async def create_shorts_endpoint(
-    admin_code: str = Form(...),
-    novel_no: int = Form(...),
-    form_type: int = Form(...),
-    content: str = Form(...),
-    image_file: Optional[UploadFile] = None,
-    music_file: Optional[UploadFile] = None,
-    db: Session = Depends(get_db),
-):
+async def create_shorts_endpoint(shorts_data: NovelShortsCreateWithAdmin, db: Session = Depends(get_db)):
     # 관리자 코드 검증
-    if admin_code != ADMIN_CODE:
-        raise HTTPException(status_code=403, detail="잘못된 관리자 코드입니다")
+    if not verify_admin_code(shorts_data.admin_code):
+        raise HTTPException(status_code=403, detail="관리자 권한이 없습니다")
 
-    # 파일 처리
-    music_path = ""
-    image_path = ""
-    try:
-        if music_file and music_file.filename:
-            music_path = await save_file(music_file, "music")
-        if image_file and image_file.filename:
-            image_path = await save_file(image_file, "image")
+    # 음악 파일 처리 (있는 경우)
+    music_path = None
+    if shorts_data.music_file:
+        try:
+            music_path = await save_file(shorts_data.music_file, "music")
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"음악 파일 업로드 중 오류 발생: {str(e)}")
 
-        # 숏츠 데이터 생성
-        shorts_data = NovelShortsCreate(
-            novel_no=novel_no, form_type=form_type, content=content, image=image_path, music=music_path
-        )
+    # 숏츠 생성
+    result = create_novel_shorts(db, shorts_data.shorts_data, music_path)
+    if not result.success:
+        raise HTTPException(status_code=400, detail=result.message)
 
-        result = create_novel_shorts(db, shorts_data)
-        if not result.success:
-            raise HTTPException(status_code=400, detail=result.message)
-
-        return result
-
-    except Exception as e:
-        # 실패 시 업로드된 파일들 삭제
-        if music_path and os.path.exists(UPLOAD_DIR / music_path):
-            os.remove(UPLOAD_DIR / music_path)
-        if image_path and os.path.exists(UPLOAD_DIR / image_path):
-            os.remove(UPLOAD_DIR / image_path)
-        raise e
+    return result
 
 
 async def process_media_files(shorts: NovelShorts, image_file: Optional[UploadFile], music_file: Optional[UploadFile]):

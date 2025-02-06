@@ -327,23 +327,35 @@ def create_novel(db: Session, novel_data: NovelCreate) -> NovelResponse:
         return NovelResponse(success=False, message="소설 생성 중 오류가 발생했습니다")
 
 
-def create_novel_shorts(db: Session, shorts_data: NovelShortsCreate) -> NovelShortsResponse:
-    try:
-        # 소설이 존재하는지 확인
-        novel = db.query(Novel).filter(Novel.no == shorts_data.novel_no).first()
-        if not novel:
-            return NovelShortsResponse(success=False, message="존재하지 않는 소설입니다")
+def get_novel_no_by_source_id(db: Session, source_id: int) -> Optional[int]:
+    """소설의 source_id로 novel_no를 찾아오는 함수"""
+    novel = db.query(Novel.no).filter(Novel.source_id == source_id).first()
+    return novel.no if novel else None
 
-        # 새 숏츠 생성
-        new_shorts = NovelShorts(**shorts_data.model_dump())
+
+def create_novel_shorts(
+    db: Session, shorts_data: NovelShortsCreate, music_path: Optional[str] = None
+) -> NovelShortsResponse:
+    try:
+        novel_no = get_novel_no_by_source_id(db, shorts_data.novel_id)
+        if not novel_no:
+            return NovelShortsResponse(success=False, message="해당하는 소설을 찾을 수 없습니다")
+
+        new_shorts = NovelShorts(
+            novel_no=novel_no,
+            content=shorts_data.content,
+            form_type=1,
+            music=music_path,
+        )
+
         db.add(new_shorts)
         db.commit()
         db.refresh(new_shorts)
 
         return NovelShortsResponse(success=True, message="숏츠가 생성되었습니다", shorts_no=new_shorts.no)
     except Exception as e:
-        print(f"Error in create_novel_shorts: {str(e)}")
         db.rollback()
+        print(f"Error creating shorts: {str(e)}")
         return NovelShortsResponse(success=False, message="숏츠 생성 중 오류가 발생했습니다")
 
 
