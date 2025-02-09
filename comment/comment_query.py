@@ -126,7 +126,7 @@ def delete_comment(db: Session, comment_no: int, user_no: int) -> CommentActionR
         )
 
         if not comment:
-            return CommentActionResponse(success=False, message="삭제할 댓글을 찾을 수 없습니다")
+            return CommentActionResponse(success=False, message="삭제할 댓글을 찾을 수 없습니다", comment_no=None)
 
         comment.is_del = True
 
@@ -139,11 +139,11 @@ def delete_comment(db: Session, comment_no: int, user_no: int) -> CommentActionR
         db.execute(stmt)
 
         db.commit()
-        return CommentActionResponse(success=True, message="댓글이 삭제되었습니다")
+        return CommentActionResponse(success=True, message="댓글이 삭제되었습니다", comment_no=comment_no)
     except Exception as e:
         print(f"Error in delete_comment: {str(e)}")
         db.rollback()
-        return CommentActionResponse(success=False, message="댓글 삭제 중 오류가 발생했습니다")
+        return CommentActionResponse(success=False, message="댓글 삭제 중 오류가 발생했습니다", comment_no=None)
 
 
 def like_comment(db: Session, user_no: int, comment_no: int) -> CommentActionResponse:
@@ -176,12 +176,12 @@ def like_comment(db: Session, user_no: int, comment_no: int) -> CommentActionRes
         comment.like += 1
         db.commit()
 
-        return CommentActionResponse(success=True, message="댓글에 좋아요를 눌렀습니다")
+        return CommentActionResponse(success=True, message="댓글에 좋아요를 눌렀습니다", comment_no=comment_no)
 
     except Exception as e:
         print(f"Error in like_comment: {str(e)}")
         db.rollback()
-        return CommentActionResponse(success=False, message="좋아요 처리 중 오류가 발생했습니다")
+        return CommentActionResponse(success=False, message="좋아요 처리 중 오류가 발생했습니다", comment_no=None)
 
 
 def dislike_comment(db: Session, user_no: int, comment_no: int) -> CommentActionResponse:
@@ -206,9 +206,9 @@ def dislike_comment(db: Session, user_no: int, comment_no: int) -> CommentAction
         comment.like -= 1
         db.commit()
 
-        return CommentActionResponse(success=True, message="댓글 좋아요를 취소했습니다")
+        return CommentActionResponse(success=True, message="댓글 좋아요를 취소했습니다", comment_no=comment_no)
 
     except Exception as e:
         print(f"Error in dislike_comment: {str(e)}")
         db.rollback()
-        return CommentActionResponse(success=False, message="좋아요 취소 처리 중 오류가 발생했습니다")
+        return CommentActionResponse(success=False, message="좋아요 취소 중 오류가 발생했습니다", comment_no=None)

@@ -56,3 +56,4 @@ class UserActiveCreate(BaseModel):
 class UserActiveResponse(BaseModel):
     success: bool
     message: str
+    active_no: Optional[int] = None
