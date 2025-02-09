@@ -140,7 +140,7 @@ class Comment(Base):
     no = Column(Integer, primary_key=True, autoincrement=True)
     novel_shorts_no = Column(Integer, ForeignKey("novel_shorts.no"))
     user_no = Column(Integer, ForeignKey("user.no"))
-    parent_no = Column(Integer, ForeignKey("comment.no"))
+    parent_no = Column(Integer, ForeignKey("comment.no"), nullable=True)
     created_date = Column(DateTime, nullable=False, default=datetime.now)
     is_del = Column(Boolean, nullable=False, default=False)
     content = Column(Text)

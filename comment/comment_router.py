@@ -30,6 +30,7 @@ async def create_shorts_comment(
     comment_data: CommentCreate, current_user: dict = Depends(jwt_bearer), db: Session = Depends(get_db)
 ):
     comment_data.user_no = current_user["user_no"]
+    comment_data.parent_no = comment_data.parent_no if comment_data.parent_no else -1
     result = create_comment(db, comment_data)
     if not result.success:
         raise HTTPException(status_code=400, detail=result.message)
