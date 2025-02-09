@@ -50,22 +50,39 @@ def get_comments(db: Session, novel_shorts_no: int) -> CommentListResponse:
 
 def create_comment(db: Session, comment_data: CommentCreate) -> CommentActionResponse:
     try:
-        new_comment = Comment(**comment_data.model_dump())
+        # 숏츠 존재 여부 확인
+        shorts = db.query(NovelShorts).filter(NovelShorts.no == comment_data.novel_shorts_no).first()
+        if not shorts:
+            return CommentActionResponse(success=False, message="존재하지 않는 숏츠입니다")
+
+        # 부모 댓글 존재 여부 확인 (대댓글인 경우)
+        if comment_data.parent_no:
+            parent_comment = db.query(Comment).filter(Comment.no == comment_data.parent_no).first()
+            if not parent_comment:
+                return CommentActionResponse(success=False, message="존재하지 않는 부모 댓글입니다")
+
+        # 새 댓글 생성
+        new_comment = Comment(
+            novel_shorts_no=comment_data.novel_shorts_no,
+            user_no=comment_data.user_no,
+            content=comment_data.content,
+            parent_no=comment_data.parent_no,
+        )
+
         db.add(new_comment)
 
-        # NovelShorts의 댓글 수 증가
-        stmt = (
-            update(NovelShorts)
-            .where(NovelShorts.no == comment_data.novel_shorts_no)
-            .values(comments=NovelShorts.comments + 1)
-        )
-        db.execute(stmt)
+        # 숏츠의 댓글 수 증가
+        shorts.comments += 1
 
         db.commit()
-        return CommentActionResponse(success=True, message="댓글이 작성되었습니다")
-    except Exception:
+        db.refresh(new_comment)
+
+        return CommentActionResponse(success=True, message="댓글이 작성되었습니다", comment_no=new_comment.no)
+
+    except Exception as e:
+        print(f"Error in create_comment: {str(e)}")  # 에러 로깅 추가
         db.rollback()
-        return CommentActionResponse(success=False, message="댓글 작성 중 오류가 발생했습니다")
+        return CommentActionResponse(success=False, message=f"댓글 작성 중 오류가 발생했습니다: {str(e)}")
 
 
 def update_comment(db: Session, comment_no: int, user_no: int, update_data: CommentUpdate) -> CommentActionResponse:
