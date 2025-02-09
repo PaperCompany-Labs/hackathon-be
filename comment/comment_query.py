@@ -98,19 +98,19 @@ def update_comment(db: Session, comment_no: int, user_no: int, update_data: Comm
         )
 
         if not comment:
-            return CommentActionResponse(success=False, message="수정할 댓글을 찾을 수 없습니다")
+            return CommentActionResponse(success=False, message="수정할 댓글을 찾을 수 없습니다", comment_no=None)
 
         if not update_data.content.strip():
-            return CommentActionResponse(success=False, message="댓글 내용을 입력해주세요")
+            return CommentActionResponse(success=False, message="댓글 내용을 입력해주세요", comment_no=None)
 
         comment.content = update_data.content
         db.commit()
 
-        return CommentActionResponse(success=True, message="댓글이 수정되었습니다")
+        return CommentActionResponse(success=True, message="댓글이 수정되었습니다", comment_no=comment_no)
     except Exception as e:
         print(f"Error in update_comment: {str(e)}")
         db.rollback()
-        return CommentActionResponse(success=False, message="댓글 수정 중 오류가 발생했습니다")
+        return CommentActionResponse(success=False, message="댓글 수정 중 오류가 발생했습니다", comment_no=None)
 
 
 def delete_comment(db: Session, comment_no: int, user_no: int) -> CommentActionResponse:

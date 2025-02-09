@@ -34,3 +34,4 @@ class CommentListResponse(BaseModel):
 class CommentActionResponse(BaseModel):
     success: bool
     message: str
+    comment_no: Optional[int] = None
