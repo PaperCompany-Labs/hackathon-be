@@ -17,6 +17,7 @@ class PostResponse(BaseModel):
     title: str  # 소설 제목
     author: str  # 작가
     source_url: str  # 원작 URL
+    is_like: bool = False  # 필드 추가
 
     class Config:
         json_schema_extra = {
@@ -32,6 +33,7 @@ class PostResponse(BaseModel):
                 "title": "소설 제목",
                 "author": "작가명",
                 "source_url": "https://example.com/novel/123",
+                "is_like": False,
             }
         }
 

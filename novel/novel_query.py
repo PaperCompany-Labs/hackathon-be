@@ -15,23 +15,11 @@ from novel.novel_schema import (
     PostResponse,
     SaveResponse,
 )
-from sqlalchemy import update
 from sqlalchemy.orm import Session
 
 
-def get_post(post_no: int, db: Session) -> PostResponse:
-    if not isinstance(post_no, int) or post_no <= 0:
-        return {"error": "Invalid post_no", "msg": "올바르지 않은 게시글 번호입니다."}
-
-    if not db or not db.is_active:
-        return {"error": "Invalid database session", "msg": "데이터베이스 연결이 유효하지 않습니다."}
-
+def get_post(post_no: int, user_no: Optional[int], db: Session) -> PostResponse:
     try:
-        # 조회수 증가
-        view_stmt = update(NovelShorts).where(NovelShorts.no == post_no).values(views=NovelShorts.views + 1)
-        db.execute(view_stmt)
-        db.commit()
-
         # 게시글 조회
         post = (
             db.query(NovelShorts, Novel)
@@ -42,6 +30,20 @@ def get_post(post_no: int, db: Session) -> PostResponse:
 
         if not post:
             return {"error": "Post not found", "msg": "존재하지 않는 숏츠입니다"}
+
+        # 사용자가 좋아요를 눌렀는지 확인
+        is_like = False
+        if user_no:
+            like_exists = (
+                db.query(UserLike)
+                .filter(
+                    UserLike.user_no == user_no,
+                    UserLike.novel_shorts_no == post_no,
+                    UserLike.is_del.is_(False),
+                )
+                .first()
+            )
+            is_like = bool(like_exists)
 
         return PostResponse(
             no=post.NovelShorts.no,
@@ -55,14 +57,16 @@ def get_post(post_no: int, db: Session) -> PostResponse:
             title=post.Novel.title,
             author=post.Novel.author,
             source_url=post.Novel.source_url,
+            is_like=is_like,
         )
     except Exception as e:
-        db.rollback()  # 에러 발생 시 롤백
+        print(f"Error in get_post: {str(e)}")
         return {"error": str(e), "msg": "게시글을 가져오는 중 오류가 발생했습니다."}
 
 
-def get_posts(db: Session, limit: int, offset: int) -> List[PostResponse]:
+def get_posts(db: Session, limit: int, offset: int, user_no: Optional[int] = None) -> List[PostResponse]:
     try:
+        # 게시글 목록 조회
         posts = (
             db.query(NovelShorts, Novel)
             .join(Novel, Novel.no == NovelShorts.novel_no)
@@ -71,6 +75,19 @@ def get_posts(db: Session, limit: int, offset: int) -> List[PostResponse]:
             .limit(limit)
             .all()
         )
+
+        # 사용자가 좋아요를 누른 게시글 목록 조회
+        user_likes = set()
+        if user_no:
+            likes = (
+                db.query(UserLike.novel_shorts_no)
+                .filter(
+                    UserLike.user_no == user_no,
+                    UserLike.is_del.is_(False),
+                )
+                .all()
+            )
+            user_likes = {like[0] for like in likes}
 
         return [
             PostResponse(
@@ -85,6 +102,7 @@ def get_posts(db: Session, limit: int, offset: int) -> List[PostResponse]:
                 title=post.Novel.title,
                 author=post.Novel.author,
                 source_url=post.Novel.source_url,
+                is_like=post.NovelShorts.no in user_likes,
             )
             for post in posts
         ]

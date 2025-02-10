@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 
 from auth.jwt_bearer import JWTBearer
 from database import get_db
@@ -26,17 +26,26 @@ jwt_bearer = JWTBearer()
 
 @app.get(path="", response_model=List[PostResponse], description="숏츠 - 목록 조회")
 async def read_posts(
-    limit: int = Query(default=10, ge=1, le=100), offset: int = Query(default=0, ge=0), db: Session = Depends(get_db)
+    limit: int = Query(default=10, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+    current_user: Optional[dict] = Depends(jwt_bearer),
+    db: Session = Depends(get_db),
 ):
-    result = get_posts(db, limit, offset)
+    user_no = current_user["user_no"] if current_user else None
+    result = get_posts(db, limit, offset, user_no)
     if isinstance(result, dict) and "error" in result:
         raise HTTPException(status_code=400, detail=result["msg"])
     return result
 
 
 @app.get(path="/{post_no}", response_model=PostResponse, description="숏츠 - 상세 조회")
-async def read_post(post_no: int, db: Session = Depends(get_db)):
-    result = get_post(post_no, db)
+async def read_post(
+    post_no: int,
+    current_user: Optional[dict] = Depends(jwt_bearer),
+    db: Session = Depends(get_db),
+):
+    user_no = current_user["user_no"] if current_user else None
+    result = get_post(post_no, user_no, db)
     if isinstance(result, dict) and "error" in result:
         raise HTTPException(status_code=400, detail=result["msg"])
     return result
