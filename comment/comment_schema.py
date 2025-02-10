@@ -28,11 +28,27 @@ class CommentResponse(BaseModel):
     no: int
     novel_shorts_no: int
     user_no: int
+    user_name: str
     parent_no: Optional[int]
     content: str
     like: int
     created_date: datetime
     is_del: bool
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "no": 1,
+                "novel_shorts_no": 1,
+                "user_no": 1,
+                "user_name": "작성자",
+                "parent_no": None,
+                "content": "댓글 내용",
+                "like": 0,
+                "created_date": "2024-02-09T12:00:00",
+                "is_del": False,
+            }
+        }
 
 
 class CommentListResponse(BaseModel):

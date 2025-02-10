@@ -5,15 +5,17 @@ from comment.comment_schema import (
     CommentResponse,
     CommentUpdate,
 )
-from models import Comment, NovelShorts, UserLike
+from models import Comment, NovelShorts, User, UserLike
 from sqlalchemy import update
 from sqlalchemy.orm import Session
 
 
 def get_comments(db: Session, novel_shorts_no: int) -> CommentListResponse:
     try:
+        # User 테이블과 조인하여 작성자 정보 함께 조회
         comments = (
-            db.query(Comment)
+            db.query(Comment, User.name.label("user_name"))
+            .join(User, User.no == Comment.user_no)
             .filter(Comment.novel_shorts_no == novel_shorts_no, Comment.is_del.is_(False))
             .order_by(Comment.created_date.asc())
             .all()
@@ -24,12 +26,13 @@ def get_comments(db: Session, novel_shorts_no: int) -> CommentListResponse:
 
         # 댓글 변환
         comment_list = []
-        for comment in comments:
+        for comment, user_name in comments:
             try:
                 comment_dict = {
                     "no": comment.no,
                     "novel_shorts_no": comment.novel_shorts_no,
                     "user_no": comment.user_no,
+                    "user_name": user_name,  # 작성자 이름 추가
                     "parent_no": comment.parent_no,
                     "content": comment.content,
                     "like": comment.like,
