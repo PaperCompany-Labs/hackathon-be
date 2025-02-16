@@ -11,6 +11,7 @@ from comment.comment_schema import CommentActionResponse, CommentCreate, Comment
 from database import get_db
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from utils.logger import log_api_call
 
 
 app = APIRouter(prefix="/shorts")
@@ -18,6 +19,7 @@ jwt_bearer = JWTBearer()
 
 
 @app.get("/{shorts_no}/comments", response_model=CommentListResponse)
+@log_api_call
 async def get_shorts_comments(shorts_no: int, db: Session = Depends(get_db)):
     result = get_comments(db, shorts_no)
     if not result.success:
@@ -26,6 +28,7 @@ async def get_shorts_comments(shorts_no: int, db: Session = Depends(get_db)):
 
 
 @app.post("/comment", response_model=CommentActionResponse)
+@log_api_call
 async def create_shorts_comment(
     comment_data: CommentCreate, current_user: dict = Depends(jwt_bearer), db: Session = Depends(get_db)
 ):
@@ -37,6 +40,7 @@ async def create_shorts_comment(
 
 
 @app.put("/comment/{comment_no}", response_model=CommentActionResponse)
+@log_api_call
 async def update_shorts_comment(
     comment_no: int,
     update_data: CommentUpdate,
@@ -50,6 +54,7 @@ async def update_shorts_comment(
 
 
 @app.delete("/comment/{comment_no}", response_model=CommentActionResponse)
+@log_api_call
 async def delete_shorts_comment(
     comment_no: int, current_user: dict = Depends(jwt_bearer), db: Session = Depends(get_db)
 ):
@@ -60,6 +65,7 @@ async def delete_shorts_comment(
 
 
 @app.post("/comment/{comment_no}/like", response_model=CommentActionResponse)
+@log_api_call
 async def like_shorts_comment(comment_no: int, current_user: dict = Depends(jwt_bearer), db: Session = Depends(get_db)):
     result = like_comment(db, current_user["user_no"], comment_no)
     if not result.success:
@@ -68,6 +74,7 @@ async def like_shorts_comment(comment_no: int, current_user: dict = Depends(jwt_
 
 
 @app.delete("/comment/{comment_no}/like", response_model=CommentActionResponse)
+@log_api_call
 async def dislike_shorts_comment(
     comment_no: int, current_user: dict = Depends(jwt_bearer), db: Session = Depends(get_db)
 ):
@@ -75,38 +82,3 @@ async def dislike_shorts_comment(
     if not result.success:
         raise HTTPException(status_code=400, detail=result.message)
     return result
-
-
-"""
-# 댓글 조회
-GET /novel/shorts/123/comments
-
-# 댓글 작성
-POST /novel/shorts/comment
-{
-    "novel_shorts_no": 123,
-    "user_no": 456,
-    "content": "댓글 내용"
-}
-
-# 대댓글 작성
-POST /novel/shorts/comment
-{
-    "novel_shorts_no": 123,
-    "user_no": 456,
-    "parent_no": 789,
-    "content": "대댓글 내용"
-}
-
-# 댓글 수정
-PUT /novel/shorts/comment/789?user_no=456
-{
-    "content": "수정된 내용"
-}
-
-# 댓글 삭제
-DELETE /novel/shorts/comment/789?user_no=456
-
-# 댓글 좋아요
-POST /novel/shorts/comment/789/like
-"""
